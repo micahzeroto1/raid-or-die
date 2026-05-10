@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAID OR DIE — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #0a0a0d;
+  --bg-mid: #15151c;
+  --bg-light: #1f1f28;
+  --bronze: #c89c5f;
+  --bronze-dark: #8a6938;
+  --gold: #e5b863;
+  --blood: #a32424;
+  --blood-dark: #6e1717;
+  --bone: #ede2c8;
+  --bone-dim: #9a917e;
+  --rune-blue: #4a8db5;
+  --rage: #d44b1f;
+  --frost: #a8d5e8;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+body {
+  background: var(--bg-dark);
+  color: var(--bone);
+  font-family: 'Crimson Text', serif;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at top, rgba(200, 156, 95, 0.05), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(163, 36, 36, 0.04), transparent 60%);
+}
+
+.game-frame {
+  position: relative;
+  width: min(95vw, 960px);
+  height: min(90vh, 640px);
+  background: var(--bg-mid);
+  border: 2px solid var(--bronze-dark);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.6) inset,
+    0 0 40px rgba(0,0,0,0.8);
+  overflow: hidden;
+}
+
+canvas { display: block; width: 100%; height: 100%; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: radial-gradient(ellipse at center, rgba(10,10,13,0.85), rgba(10,10,13,0.98));
+  z-index: 10;
+  padding: 40px;
+  text-align: center;
+}
+
+.overlay.hidden { display: none; }
+.hud.hidden { display: none; }
+
+.title {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(40px, 7vw, 80px);
+  letter-spacing: 0.15em;
+  color: var(--bone);
+  text-shadow: 0 0 30px rgba(229, 184, 99, 0.4), 0 2px 0 rgba(0,0,0,0.8);
+  margin-bottom: 8px;
+}
+
+.title .or {
+  color: var(--blood);
+  font-style: italic;
+}
+
+.subtitle {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--bone-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 32px;
+}
+
+.tagline {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(11px, 1.2vw, 13px);
+  letter-spacing: 0.3em;
+  color: var(--bronze);
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.btn {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--bone);
+  border: 1px solid var(--bronze-dark);
+  padding: 14px 36px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.btn:hover {
+  background: var(--bronze-dark);
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px rgba(200, 156, 95, 0.4);
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, var(--bronze), var(--bronze-dark));
+  color: var(--bg-dark);
+  border-color: var(--gold);
+}
+
+.btn.primary:hover {
+  background: var(--gold);
+  box-shadow: 0 0 30px rgba(229, 184, 99, 0.6);
+}
+
+.btn.danger { border-color: var(--blood-dark); color: var(--blood); }
+.btn.danger:hover { background: var(--blood-dark); color: var(--bone); }
+
+.controls {
+  margin-top: 30px;
+  font-size: 13px;
+  color: var(--bone-dim);
+  line-height: 1.8;
+  letter-spacing: 0.05em;
+}
+
+.controls kbd {
+  display: inline-block;
+  background: var(--bg-light);
+  border: 1px solid var(--bronze-dark);
+  padding: 2px 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--bone);
+  margin: 0 2px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* HUD */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hud-top {
+  position: absolute;
+  top: 16px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+}
+
+.wave-info {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: var(--bronze);
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+}
+
+.wave-info .num { color: var(--gold); font-size: 18px; }
+
+.timer {
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  color: var(--bone);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  min-width: 50px;
+  text-align: center;
+}
+
+.timer.warning { color: var(--rage); animation: pulse 0.5s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.hud-bottom-left {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.weapon-slots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.weapon-slot {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--bronze-dark);
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bone);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+
+.weapon-slot.filled {
+  border-color: var(--bronze);
+  background: linear-gradient(180deg, rgba(200, 156, 95, 0.12), rgba(10, 10, 13, 0.6));
+}
+
+.weapon-slot.empty {
+  opacity: 0.4;
+  border-style: dashed;
+  color: transparent;
+}
+
+.bar {
+  height: 18px;
+  background: var(--bg-dark);
+  border: 1px solid var(--bronze-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.2s;
+}
+
+.bar-fill.hp { background: linear-gradient(90deg, var(--blood-dark), var(--blood)); }
+.bar-fill.rage { background: linear-gradient(90deg, #5c1f0c, var(--rage), #f7c84a); }
+
+.bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--bone);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+
+.rage-ready {
+  color: var(--gold) !important;
+  text-shadow: 0 0 8px var(--gold);
+  animation: glow 0.8s infinite;
+}
+
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 8px var(--gold); }
+  50% { text-shadow: 0 0 16px var(--gold), 0 0 4px var(--bone); }
+}
+
+.hud-bottom-right {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.silver {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: var(--bone);
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  letter-spacing: 0.1em;
+}
+
+.silver .num { color: var(--bone); }
+.silver .label { color: var(--bone-dim); font-size: 11px; letter-spacing: 0.3em; margin-left: 4px; }
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-width: 760px;
+  margin-top: 24px;
+}
+
+.shop-card {
+  background: var(--bg-mid);
+  border: 1px solid var(--bronze-dark);
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.shop-card:hover {
+  background: var(--bg-light);
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(229, 184, 99, 0.3);
+}
+
+.shop-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.shop-card.disabled:hover { transform: none; background: var(--bg-mid); }
+
+.shop-card .name {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--bone);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.shop-card .effect {
+  font-size: 13px;
+  color: var(--bronze);
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.shop-card .cost {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: var(--blood);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity 0.1s;
+}
+
+.flash.active { opacity: 0.3; }
+
+.flash.gold { background: var(--gold); }
+
+.death-banner {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(48px, 8vw, 96px);
+  letter-spacing: 0.2em;
+  color: var(--blood);
+  text-shadow: 0 0 40px rgba(163, 36, 36, 0.6), 0 4px 0 rgba(0,0,0,0.8);
+  margin-bottom: 8px;
+}
+
+.death-flavor {
+  font-style: italic;
+  font-size: 18px;
+  color: var(--bone-dim);
+  margin-bottom: 32px;
+  max-width: 500px;
+}
+
+.run-stats {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 32px;
+  font-family: 'Cinzel', serif;
+}
+
+.run-stats .stat {
+  text-align: center;
+}
+
+.run-stats .label {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--bronze);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.run-stats .value {
+  font-size: 24px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.victory-banner {
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(229, 184, 99, 0.5);
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="game-frame">
+    <canvas id="game" width="960" height="640"></canvas>
+    <div class="flash" id="flash"></div>
+
+    <!-- HUD -->
+    <div class="hud hidden" id="hud">
+      <div class="hud-top">
+        <div class="wave-info">Wave <span class="num" id="waveNum">1</span></div>
+        <div class="timer" id="timer">30</div>
+        <div class="wave-info" id="killCount">0 slain</div>
+      </div>
+      <div class="hud-bottom-left">
+        <div class="weapon-slots" id="weaponSlots"></div>
+        <div class="bar">
+          <div class="bar-fill hp" id="hpFill" style="width:100%"></div>
+          <div class="bar-label">
+            <span>VITA</span>
+            <span id="hpText">100 / 100</span>
+          </div>
+        </div>
+        <div class="bar">
+          <div class="bar-fill rage" id="rageFill" style="width:0%"></div>
+          <div class="bar-label">
+            <span id="rageLabel">RAGE</span>
+            <span id="rageText">0 / 100</span>
+          </div>
+        </div>
+      </div>
+      <div class="hud-bottom-right">
+        <div class="silver">
+          <span class="num" id="silverNum">0</span><span class="label">HACKSILVER</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu -->
+    <div class="overlay" id="menu">
+      <div class="tagline">Mobile Roguelite Prototype</div>
+      <h1 class="title">RAID <span class="or">or</span> DIE</h1>
+      <p class="subtitle">The last raid is never the last raid.</p>
+      <button class="btn primary" id="startBtn">Begin the Raid</button>
+      <div class="controls">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> to move</div>
+        <div>Axes throw automatically at the nearest foe</div>
+        <div><kbd>SPACE</kbd> to unleash Berserker Rage (when full)</div>
+      </div>
+    </div>
+
+    <!-- Shop -->
+    <div class="overlay hidden" id="shop">
+      <div class="tagline">Between Waves</div>
+      <h2 class="title" style="font-size: clamp(28px, 4vw, 44px);">VALHALLA'S FAVOR</h2>
+      <p class="subtitle">Spend your hacksilver. The fight comes soon.</p>
+      <div class="shop-grid" id="shopGrid"></div>
+      <button class="btn" id="continueBtn" style="margin-top: 28px;">Continue to Battle</button>
+    </div>
+
+    <!-- Game Over -->
+    <div class="overlay hidden" id="gameover">
+      <h2 class="death-banner">YOU FELL</h2>
+      <p class="death-flavor" id="deathFlavor">The valkyries carry you back to Valhalla. Drink. Heal. Raid again.</p>
+      <div class="run-stats">
+        <div class="stat"><div class="label">Wave</div><div class="value" id="finalWave">1</div></div>
+        <div class="stat"><div class="label">Slain</div><div class="value" id="finalKills">0</div></div>
+        <div class="stat"><div class="label">Hacksilver</div><div class="value" id="finalSilver">0</div></div>
+      </div>
+      <button class="btn primary" id="restartBtn">Raid Again</button>
+    </div>
+
+    <!-- Victory -->
+    <div class="overlay hidden" id="victory">
+      <h2 class="death-banner victory-banner">VICTORY</h2>
+      <p class="death-flavor">The monastery falls. The Abbot lies dead. Odin watches from the high seat and is pleased.<br><br>This was but one raid. Ragnarok is coming.</p>
+      <div class="run-stats">
+        <div class="stat"><div class="label">Slain</div><div class="value" id="vKills">0</div></div>
+        <div class="stat"><div class="label">Hacksilver</div><div class="value" id="vSilver">0</div></div>
+        <div class="stat"><div class="label">Time</div><div class="value" id="vTime">0:00</div></div>
+      </div>
+      <button class="btn primary" id="victoryBtn">Raid Again</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

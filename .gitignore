@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code (user-local settings; project-shared settings.json can be committed)
+.claude/settings.local.json
+
+# Node / future tooling
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS / misc
+Thumbs.db
