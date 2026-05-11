@@ -103,30 +103,7 @@ if (berserkBtn) {
   berserkBtn.addEventListener('click', fire);
 }
 
-// Letterbox-fit: scale the canvas display to fit the game-frame while
-// preserving the world aspect (960/640 = 1.5). Whole world is always
-// visible — better for a survivor game than camera-pan which can hide
-// incoming threats. Canvas internal coords stay 960x640 so game logic
-// is unchanged; only the CSS display size changes per viewport.
-function resizeCanvas() {
-  if (!gameFrame || !canvas) return;
-  const frameW = gameFrame.clientWidth;
-  const frameH = gameFrame.clientHeight;
-  const worldAspect = W / H;
-  let dispW, dispH;
-  if (frameW / frameH >= worldAspect) {
-    dispH = frameH;
-    dispW = frameH * worldAspect;
-  } else {
-    dispW = frameW;
-    dispH = frameW / worldAspect;
-  }
-  canvas.style.width = dispW + 'px';
-  canvas.style.height = dispH + 'px';
-}
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', resizeCanvas);
-resizeCanvas();
+// (Canvas sizing handled by CSS aspect-ratio on .game-frame; no JS resize needed.)
 
 function updateBerserkBtnState() {
   if (!berserkBtn) return;

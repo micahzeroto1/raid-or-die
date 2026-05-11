@@ -50,8 +50,12 @@ body {
 
 .game-frame {
   position: relative;
-  width: min(95vw, 960px);
-  height: min(90vh, 640px);
+  /* Game-frame always preserves the 1.5:1 world aspect via aspect-ratio.
+     Width clamped to: viewport width 95vw, world width 960px, OR the
+     height-derived width (90vh * 1.5) so the frame's height never exceeds
+     90vh. CSS picks the smaller, height follows automatically. */
+  aspect-ratio: 3 / 2;
+  width: min(95vw, 960px, calc(90vh * 1.5));
   background: var(--bg-mid);
   border: 2px solid var(--bronze-dark);
   box-shadow:
@@ -60,17 +64,9 @@ body {
   overflow: hidden;
 }
 
-/* Canvas is letterbox-fit inside the game-frame: JS sizes the display
-   to preserve the 1.5:1 world aspect, centered within the frame. The
-   internal 960x640 canvas coords stay unchanged so all world logic is
-   unaffected — only the display size changes per viewport. */
-canvas {
-  display: block;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
+/* Canvas fills the (correctly-aspect-ratio'd) game-frame. Internal coords
+   stay 960x640; browser scales the display. */
+canvas { display: block; width: 100%; height: 100%; }
 
 /* Viewport-centered vignette (replaces the canvas-drawn one so it stays
    correct when the camera pans on mobile). */
