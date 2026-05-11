@@ -1,5 +1,6 @@
 import { dist, rand } from './utils.js';
 import { applyDamage } from './enemies.js';
+import { playSound } from './sounds.js';
 
 export const WEAPONS = {
   throwing_axe: {
@@ -22,6 +23,7 @@ export const WEAPONS = {
     projectileSize: 5,
     projectileShape: 'blade',
     spins: true,
+    fireSound: 'axe',
     cost: 90
   },
   throwing_knife: {
@@ -45,6 +47,7 @@ export const WEAPONS = {
     projectileShape: 'blade',
     spins: true,
     rageGain: 0.3,
+    fireSound: 'knives',
     cost: 75
   },
   warhammer: {
@@ -58,6 +61,7 @@ export const WEAPONS = {
     fireRate: 1.2,
     arcRange: 80,
     color: '#c89c5f',
+    fireSound: 'hammer',
     cost: 120
   },
   longbow: {
@@ -81,6 +85,7 @@ export const WEAPONS = {
     projectileShape: 'arrow',
     spins: false,
     fireFlashDuration: 0.1,
+    fireSound: 'arrow',
     cost: 130
   },
   rune: {
@@ -104,6 +109,7 @@ export const WEAPONS = {
     projectileShape: 'rune',
     spins: true,
     statusEffect: { type: 'frost', params: { timer: 2.0, slowMult: 0.6 } },
+    fireSound: 'rune',
     cost: 150
   },
   mjolnir: {
@@ -123,6 +129,7 @@ export const WEAPONS = {
     spins: true,
     color: '#c89c5f',
     edgeColor: '#7a6238',
+    fireSound: 'axe',
     cost: 170
   }
 };
@@ -198,6 +205,7 @@ function firePattern_projectile(game, slot, weapon) {
   }
 
   if (weapon.fireFlashDuration) slot.fireFlashTimer = weapon.fireFlashDuration;
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
   return true;
 }
 
@@ -234,6 +242,7 @@ function firePattern_arc(game, slot, weapon) {
   }
   slot.swingTimer = 0.2;
   game.shake = Math.max(game.shake, 4);
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
   return true;
 }
 
@@ -280,6 +289,7 @@ function firePattern_boomerang(game, slot, weapon) {
     speed: weapon.projectileSpeed
   });
 
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
   return true;
 }
 

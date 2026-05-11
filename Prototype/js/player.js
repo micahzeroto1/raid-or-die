@@ -2,6 +2,7 @@ import { clamp, rand } from './utils.js';
 import { MONASTERY_HEIGHT } from './config.js';
 import { flashScreen } from './ui.js';
 import { recomputePerStackModifiers } from './events.js';
+import { playSound } from './sounds.js';
 
 // --- Stack helpers ---------------------------------------------------------
 
@@ -115,6 +116,7 @@ export function tryBerserker(game) {
     player.rage = 0;
     game.shake = 12;
     flashScreen('gold', 0.15);
+    playSound('berserk', { volume: 0.5 });
     // burst particles
     for (let i = 0; i < 30; i++) {
       const a = (i / 30) * Math.PI * 2;

@@ -2,6 +2,7 @@ import { rand, randInt, dist, clamp } from './utils.js';
 import { ENEMY_DEFS, GATE_X, GATE_Y, MONASTERY_HEIGHT } from './config.js';
 import { flashScreen, showGameOver } from './ui.js';
 import { emit } from './events.js';
+import { playSound } from './sounds.js';
 
 export function spawnEnemy(game, type) {
   const def = ENEMY_DEFS[type];
@@ -303,6 +304,10 @@ export function applyDamage(game, enemy, j, damage, opts = {}) {
 
   // Notify item / status listeners
   emit(game, 'onHit', { enemy, damage, color: opts.color });
+
+  // Impact thud (throttled so knife volleys + warhammer multi-hits don't
+  // pile into an audio wall).
+  playSound('impact', { volume: 0.15, minInterval: 60 });
 
   // Lethal hit
   if (enemy.hp <= 0) killEnemy(game, j);
