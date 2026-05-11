@@ -71,6 +71,7 @@ export function endWave(game) {
 export function continueToNextWave(game) {
   document.getElementById('shop').classList.add('hidden');
   game.wave++;
+  game.player.hp = game.player.maxHp;
   game.state = 'playing';
   startWave(game);
 }

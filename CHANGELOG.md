@@ -23,6 +23,16 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[wave-heal]`
+
+Full heal on every wave transition. Walking into wave 2/3 chipped from wave 1 felt punishing in a way that wasn't carrying the right kind of tension — it just meant the next wave's first mistake was fatal. Mid-wave mead drops still matter; the reset is a between-wave reset, not a between-fight one.
+
+- [Prototype/js/waves.js](Prototype/js/waves.js) `continueToNextWave`: set `player.hp = player.maxHp` before starting the next wave.
+
+Index: `[wave-heal]`.
+
+---
+
 ## 2026-05-11 — `[silver-bump-2]` + `[mead-bump]`
 
 Another econ pass. The first silver bump (2→5 commons, 5→14 knight) was still tight; user wanted more headroom for shop choice, plus more healing availability mid-wave.
