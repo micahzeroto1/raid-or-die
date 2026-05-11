@@ -192,6 +192,24 @@ function loop(t) {
 const bgMusic = document.getElementById('bgMusic');
 if (bgMusic) bgMusic.volume = 0.4;
 
+// --- Pause: click on canvas toggles pause during gameplay ---
+// Overlays (menu, shop, gameover, victory) cover the canvas with their
+// own click handlers, so this listener only fires during active play OR
+// while paused (pause overlay has pointer-events:none so clicks pass
+// through to canvas to resume).
+function togglePause() {
+  if (game.state === 'playing') {
+    game.state = 'paused';
+    if (bgMusic && !bgMusic.paused) bgMusic.pause();
+    document.getElementById('pause').classList.remove('hidden');
+  } else if (game.state === 'paused') {
+    game.state = 'playing';
+    if (bgMusic && bgMusic.paused) bgMusic.play().catch(() => {});
+    document.getElementById('pause').classList.add('hidden');
+  }
+}
+canvas.addEventListener('click', togglePause);
+
 // Fullscreen toggle. Works on Chrome/Edge/Firefox/Safari-desktop.
 // iOS Safari has no Fullscreen API for non-video elements — for iOS,
 // the apple-mobile-web-app-capable meta lets users get true fullscreen

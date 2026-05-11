@@ -1,0 +1,301 @@
+# Raid or Die — Patch Log
+
+Reverse-chronological log of changes to the prototype.
+Newest entry at top. Each entry has a short tag in `[brackets]` for index lookup.
+
+Tag conventions:
+- `[stage-N step-M]` — work tied to the build plan's stage / step structure
+- `[mobile]` — phone / tablet specific work
+- `[deploy]` — repo / hosting / GitHub Pages
+- `[audio]` — music + SFX
+- `[fix]` — bug fix follow-ups (the parent entry usually identifies what was broken)
+- `[chore]` — meta / docs / non-gameplay
+
+---
+
+## Index (jump-by-tag)
+
+- **Stage 1 → 2 work**: `[stage-2 step-1]` through `[stage-2 step-8]`
+- **Mobile playability pass**: `[mobile-controls]`, `[mobile-fit]`, `[mobile-fullscreen]`, `[mobile-layout]`, `[mobile-pause]`
+- **Deploy / hosting**: `[deploy-init]`, `[deploy-pages]`
+- **Audio**: `[audio-music]`, `[audio-sfx]`, `[audio-fix-clone]`, `[audio-replace]`
+- **Process / meta**: `[chore-changelog]`
+
+---
+
+## 2026-05-11 — `[chore-changelog]` + `[mobile-pause]`
+
+### Changelog file added (this file)
+First entry in the patch log. From here forward, every code-affecting commit should add a dated entry here so future sessions and future-Micah can reference what changed and why.
+
+### Click-to-pause + music pause
+- Canvas click toggles a new `'paused'` game state. Update loop already short-circuits when state isn't `'playing'`, so this freezes all gameplay (cooldowns, enemies, projectiles, particles, ticks, stack decay).
+- Music pauses on entry to `paused`, resumes on exit.
+- Pause overlay (`#pause`) is semi-transparent (0.45 black) so the frozen game is still visible behind. Overlay has `pointer-events: none` so any click during pause passes through to the canvas underneath to resume.
+- Click listener attached to canvas only — shop / menu / gameover / victory overlays cover the canvas with their own click handlers, so this never fires while those screens are up. No conflict with "Begin the Raid", shop card taps, "Raid Again", or the fullscreen button.
+
+**Files**: `Prototype/index.html` (pause overlay HTML + CSS), `Prototype/js/main.js` (togglePause + listener).
+
+---
+
+## 2026-05-10 → 2026-05-11 — `[audio-replace]`
+
+### Sound replacements + viking hurt + volume tuning
+- Replaced `impact sound.mp3` with `enemy impact sound.mp3` (on player → enemy hits).
+- Replaced `knives sound.mp3` with `throwing knife sound.mp3`.
+- Added `viking hurt sound.mp3` — fires in `applyPlayerDamage` (enemies.js) when the player takes a hit. Gated by the existing invuln window so it can't spam.
+- Volume tuning: impact 0.15 → 0.08, knife fire 0.25 → 0.12 (via new `weapon.fireVolume` override field), viking hurt at 0.20.
+
+**Files**: `Prototype/Assets/` (3 file swaps), `Prototype/js/sounds.js`, `Prototype/js/enemies.js`, `Prototype/js/weapons.js`.
+
+---
+
+## 2026-05-10 — `[audio-fix-clone]`
+
+### SFX silently failing on mobile — fixed
+Earlier `sounds.js` used a preload-once + `cloneNode()` pool. Cloned audio elements don't reliably trigger media load on mobile Safari/Chrome, and the `.catch(() => {})` in `play()` swallowed all the rejection errors so nothing surfaced.
+
+Rewrote `playSound` to use `new Audio(path)` fresh per call (browser HTTP cache handles repeats) and added `console.warn` on rejection so future audio failures are diagnosable.
+
+**Files**: `Prototype/js/sounds.js`.
+
+---
+
+## 2026-05-10 — `[audio-sfx]`
+
+### Sound effects pool + per-weapon fire sounds + impact + berserker
+- New module `Prototype/js/sounds.js` — preloaded audio dict, `playSound(name, opts)` helper with throttle support.
+- Wired each weapon to a `fireSound` (`axe`, `knives`, `arrow`, `rune`, `hammer`, mjolnir reuses axe).
+- Impact sound (`enemy impact`) fires per player → enemy hit, throttled 60ms to avoid sound walls during knife volleys.
+- Berserker activation plays `berserk` sound.
+
+**Files**: `Prototype/js/sounds.js` (new), `Prototype/js/weapons.js`, `Prototype/js/enemies.js`, `Prototype/js/player.js`, `Prototype/Assets/*.mp3`.
+
+---
+
+## 2026-05-10 — `[audio-music]`
+
+### Background music: Einherjar March
+- `<audio loop preload="auto">` element near end of body. Volume 0.4.
+- Plays on the "Begin the Raid" click (browser autoplay policy blocks unsolicited audio).
+- Loops continuously through all game states.
+
+**Files**: `Prototype/index.html`, `Prototype/js/main.js`, `Prototype/Assets/Einherjar March.mp3`.
+
+---
+
+## 2026-05-10 — `[mobile-layout]`
+
+### Touch controls moved off the map to dedicated screen real estate
+- Joystick + Berserk button were absolutely positioned inside game-frame (overlaying canvas). Restructured to be siblings of game-frame inside a new `.play-layout` grid container.
+- Portrait: frame spans both columns on row 1; joystick + Berserk side-by-side on row 2 below.
+- Landscape: joystick LEFT, frame CENTER, Berserk RIGHT.
+- Desktop: just the frame, controls hidden.
+
+**Files**: `Prototype/index.html`.
+
+---
+
+## 2026-05-10 — `[mobile-fullscreen]`
+
+### Fullscreen button + viewport fitting on iPad / mobile
+- `<button class="fullscreen-btn">⛶</button>` top-right of game-frame; cross-browser fullscreen toggle (`requestFullscreen` / webkit / ms). iOS Safari: button auto-hides since the Fullscreen API isn't supported for non-video elements.
+- Added `apple-mobile-web-app-capable` + status-bar-style + `mobile-web-app-capable` meta tags so iOS users can "Share → Add to Home Screen" for true fullscreen.
+- Switched `100vh` → `100dvh` (dynamic viewport height) so layout responds to Safari's URL bar showing / hiding.
+- Bumped frame width-derived height from 90vh → 95dvh for max real estate.
+
+**Files**: `Prototype/index.html`, `Prototype/js/main.js`.
+
+---
+
+## 2026-05-10 — `[mobile-fit]`
+
+### Letterbox-fit camera → aspect-ratio approach (v2 fix)
+- v1 of the camera worked with CSS transform on the canvas to pan it; on phones, HUD anchored to game-frame corners floated over empty letterbox bars instead of next to the canvas. "Wonky" feel.
+- v2 fix: use CSS `aspect-ratio: 3/2` on `.game-frame` with width clamped to `min(95vw, 960px, 90vh*1.5)`. Game-frame always preserves world aspect. Canvas fills frame normally. HUD overlays + touch controls anchored to frame corners now sit at canvas corners as intended.
+- Dropped JS `updateCameraScroll` + resize listeners — CSS handles all sizing now.
+
+**Files**: `Prototype/index.html`, `Prototype/js/main.js`.
+
+---
+
+## 2026-05-10 — `[mobile-controls]`
+
+### Initial mobile pass: virtual joystick + Berserk button + CSS-transform camera (deprecated)
+- Joystick (110px ring + 44px thumb) and Berserk button (88px) added to game-frame; touch event listeners track one finger, compute analog dx/dy in [-1, 1].
+- `game.touchInput.dx/dy` added; `updatePlayer` reads it additively with WASD; normalize threshold changed from `> 0` to `> 1` to preserve analog joystick magnitude.
+- Canvas CSS transform was used to pan world (camera follows player); this was later replaced by the aspect-ratio approach (`[mobile-fit]`).
+- Vignette moved from canvas-rendered to CSS pseudo-element overlay so it stays viewport-centered.
+
+**Files**: `Prototype/index.html`, `Prototype/js/main.js`, `Prototype/js/player.js`, `Prototype/js/render.js`.
+
+---
+
+## 2026-05-10 — `[deploy-pages]`
+
+### GitHub Pages deployment
+- Created `_config.yml` with Jekyll `exclude` so strategy docs aren't served at the Pages URL.
+- Made the repo public (free-tier Pages requires public repos).
+- Enabled Pages on `main` branch root via `gh api`.
+- **Live URL**: https://micahzeroto1.github.io/raid-or-die/Prototype/
+
+**Files**: `_config.yml` (new).
+
+---
+
+## 2026-05-10 — `[deploy-init]`
+
+### Git init + GitHub remote + initial commit
+- Initialized git on `main`, added `.gitignore` (excludes `.DS_Store`, `.claude/settings.local.json`, editor cruft).
+- Set user identity to `Micah Whitehead <micah@zeroto1.co>` (one-time global config).
+- Created private repo `micahzeroto1/raid-or-die` via `gh repo create`.
+- First commit covered Stage 1 refactor + Stage 2 step 1 (weapon system + Throwing Knife).
+
+**Files**: `.gitignore` (new), all of `Prototype/`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-8]`
+
+### Shop rarity colors + Berserker stack HUD
+- Shop cards get `rarity-{common|uncommon|rare|legendary}` CSS class: border-color + cost-text color shift. Disabled state still overrides cost to blood-red.
+- New stack-row HUD element below rage bar shows "BERSERKER ×N" + decay bar per active stack. Generic loop over `player.stacks` driven by `STACK_DISPLAY_CONFIG` map in ui.js — adding stacks is one new entry.
+
+**Files**: `Prototype/index.html`, `Prototype/js/ui.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-7]`
+
+### 8 archetype items + supporting infrastructure
+- Items: Battle Frenzy, Bloodlust (Berserker); Whetstone Belt, Eager Hand (Thrown); Frostbite, Glacier's Edge (Frost); Iron Skin, Tortoise Shell (Shield Wall).
+- Weapon tag system (`weapon.tags = ['thrown'/'melee'/'ranged'/'magic']`) for scoped stat boosts like "thrown weapons +5 damage".
+- Scoped `stat_boost` routes to `player.weaponTagBoosts[tag][stat]` overlay; `getEffectiveDamageBonus` / `getEffectiveFireRateMult` helpers merge global + tag overlays at fire time.
+- Frost-bonus stats: `player.frostDurationBonus`, `player.frostStrengthBonus` (capped 0.95). `applyStatus(game, enemy, type, params)` reads them via new `computeStatusParams`.
+- Armor mechanic: `player.armor` reduces damage flat with floor of 1 in `applyPlayerDamage`. HUD armor row visible only when armor > 0.
+- Rarity-weighted shop picks (common 50 / uncommon 30 / rare 15 / legendary 5), with replacement.
+
+**Files**: `Prototype/js/items.js`, `Prototype/js/weapons.js`, `Prototype/js/player.js`, `Prototype/js/enemies.js`, `Prototype/js/ui.js`, `Prototype/index.html`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-6]`
+
+### Item system structural refactor
+- New `Prototype/js/events.js`: registry of event handlers (`onKill`, `onHit`, `onTakeDamage`, `onLowHp`, `onTick`); `tickTickHandlers`, `recomputePerStackModifiers`.
+- New item data shape: `{ id, name, cost, rarity, archetype, description, effects[] }` replacing the old `apply` closures.
+- `EFFECT_HANDLERS` dispatch map for 10+ effect types (`stat_boost`, `instant_heal`, `clamp_hp`, `on_kill`, `on_hit`, `on_take_damage`, `on_low_hp`, `on_tick`, `gain_stack`, `per_stack_modifier`, `apply_status`).
+- Player gains `stacks: {}` + `lowHpFlag`; stack helpers `registerStack`, `gainStack`, `tickStackDecay`, `resetStack`.
+- New `applyPlayerDamage(game, damage, opts)` helper centralizes player damage at two sites; fires `onTakeDamage`.
+- Emit `onKill` in `killEnemy`; `onHit` in `applyDamage`.
+- Existing 6 items migrated; behavior unchanged.
+
+**Files**: `Prototype/js/events.js` (new), `Prototype/js/items.js`, `Prototype/js/player.js`, `Prototype/js/enemies.js`, `Prototype/js/main.js`, `Prototype/js/ui.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-5]`
+
+### Rune + Mjolnir + Frost status system
+- Rune (magic projectile, 60 dmg, slow ice-blue glyph, applies Frost).
+- Mjolnir (boomerang, 22 dmg/leg, returns to current player position, per-leg dedup via `hitThisLeg`).
+- New `'boomerang'` entry in `FIRE_PATTERNS` (now 3 patterns: projectile, arc, boomerang).
+- Frost status: `enemy.statuses` dict keyed by type. `applyStatus` registers; `tickEnemyStatuses` decays; movement reads `slowMult`.
+- `endWave` clears `game.projectiles` so in-flight Mjolnirs don't survive the shop pause.
+
+**Files**: `Prototype/js/weapons.js`, `Prototype/js/enemies.js`, `Prototype/js/render.js`, `Prototype/js/waves.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-4.5]`
+
+### Unified hit feedback + bow fire feedback
+- Centralized damage application via new `applyDamage(game, enemy, j, damage, opts)` in enemies.js. Both inline damage blocks (arc and projectile) collapse to one call each.
+- Damage numbers as a particle subtype (`kind: 'dmg_num'`). x-jitter on spawn to prevent stacked overlap.
+- Brand-colored impact sparks via `opts.color`.
+- Hit flash duration 0.1 → 0.08s, moved into applyDamage so all damage sources inherit.
+- Longbow: `fireFlashDuration: 0.1` → renders bowstring flash on fire (6 radiating sparks from player, rotated to facing). Arrow shape spawns trail particles per frame.
+- Brighter arrow color, glow halo on arrow projectile, bigger/brighter trail particles for visibility.
+
+**Files**: `Prototype/js/enemies.js`, `Prototype/js/weapons.js`, `Prototype/js/particles.js`, `Prototype/js/render.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-4]`
+
+### Warhammer (arc) + Longbow (precision)
+- `FIRE_PATTERNS` dispatch map: `projectile` (axe/knife) + new `arc` (warhammer).
+- Warhammer: 360° instant arc, 80px radius, 25 dmg, full damage to all in arc; `slot.swingTimer` drives fading ring visual in drawPlayer.
+- Longbow: 40 dmg, 1.4s rate, fast arrow projectile (700 speed, range 700), arrow shape (not spinning blade).
+- Projectile shape dispatch (`drawBladeProjectile` / `drawPlayerArrow`); `spins` flag controls rotation tick (arrows don't tumble).
+- HUD slot icons disambiguated (A/K/W/L instead of all weapons starting with T).
+- Knife `rageGain: 0.3` so it doesn't spam Berserker (was building rage 6× faster than axe).
+
+**Files**: `Prototype/js/weapons.js`, `Prototype/js/render.js`, `Prototype/js/ui.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-3.6]`
+
+### Wallet UI + economy rebalance
+- Shop wallet display at top of overlay, syncs every frame via `updateHUD` reading `game.totalSilver`.
+- Disabled card styling: opacity 0.5, cursor default, red cost text.
+- Enemy silver drops reduced ~75% (peasant 4→1, militia 9→2, knight 22→5, archer 8→2, abbot 200→40).
+- Item costs tripled (18-30 → 55-90). Knife 25→75, axe (placeholder if offered) 30→90.
+- Reweave start cost 5 → 15.
+- Abbot HP 600 → 900 → 1800 (two rounds of tuning). Abbot fire cooldown 2.2 → 1.7s; spawn delay 2.0 → 1.5s.
+- Net target: shop 1 affords 1-2 items typical, 3 with luck. Reweaves bite into budget meaningfully.
+
+**Files**: `Prototype/js/config.js`, `Prototype/js/items.js`, `Prototype/js/weapons.js`, `Prototype/js/ui.js`, `Prototype/js/enemies.js`, `Prototype/index.html`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-3.5/3.5b]`
+
+### Mead Flask healing pickup + Reweave button + thematic renames
+- Mead Flask pickup (drinking-horn visual, 4% drop from non-bosses, heals 15 HP, green flash on collect, magnetic).
+- Pickup type discriminator (`type: 'silver' | 'mead_flask'`); collection + rendering dispatch by type.
+- Reweave button in shop (cost starts 15, doubles per use; resets per shop visit).
+- "Reroll" → "Reweave" rename (Norns weaving fate flavor).
+- "Boar Heart" → "Mead Flask" rename (narratively fits Saxon enemies; Boar Heart shop item is unrelated and kept).
+- Light tuning: archer arrowDamage 10→7, fireRate 1.8→2.4, player starting HP 100→120.
+
+**Files**: `Prototype/index.html`, `Prototype/js/config.js`, `Prototype/js/items.js`, `Prototype/js/enemies.js`, `Prototype/js/pickups.js`, `Prototype/js/render.js`, `Prototype/js/ui.js`, `Prototype/js/waves.js`, `Prototype/js/player.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-3]`
+
+### Enemy behavior system + Saxon Archer
+- Behavior dispatch in enemies.js: `BEHAVIORS = { chase, ranged }`.
+- Saxon Archer (ranged behavior): preferred-distance band 250±30 with arrows on fireRate cycle.
+- Universal enemy clamp so ranged enemies can't back off-screen.
+- Enemy projectile rotation no longer ticks (arrows hold fire-angle; beads are circles).
+- Wave compositions updated to include archers.
+
+**Files**: `Prototype/js/enemies.js`, `Prototype/js/config.js`, `Prototype/js/render.js`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-2]`
+
+### Weapon system + Throwing Knife
+- Refactored throwing axe into data-driven `WEAPONS` dict in weapons.js.
+- 4 weapon slots on player; per-slot cooldown.
+- Throwing Knife: 3-shot spread, fast fire rate, low single-target damage.
+- Shop offers mix of weapons + items (rotates).
+- Player loses `damage` / `fireRate`; gains `damageBonus` (additive) / `fireRateMult` (multiplier).
+
+**Files**: `Prototype/js/weapons.js`, `Prototype/js/player.js`, `Prototype/js/main.js`, `Prototype/js/ui.js`, `Prototype/js/items.js`, `Prototype/js/render.js`, `Prototype/index.html`.
+
+---
+
+## 2026-05-10 — `[stage-2 step-1]`
+
+### ES6 module refactor of the single-file prototype
+- Split `Prototype/index.html`'s inline `<script>` (1175 lines) into 12 ES6 modules under `Prototype/js/`:
+  `main.js` (entry + loop + state), `config.js`, `utils.js`, `player.js`, `enemies.js`, `weapons.js`, `items.js`, `waves.js`, `particles.js`, `pickups.js`, `ui.js`, `render.js`.
+- Zero behavioral changes. Game played identically post-refactor.
+- `index.html` reduced to HTML+CSS+`<script type="module" src="js/main.js">`.
+
+**Files**: `Prototype/index.html`, all of `Prototype/js/` (new).
