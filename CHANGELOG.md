@@ -34,7 +34,7 @@ Silver (second bump on top of `[silver-bump]`):
 - **Knight** 14 → **18** (+260% vs original 5).
 
 Mead:
-- **Drop chance** 6% → **9%** (+50%). More frequent flasks during wave.
+- **Drop chance** 6% → **8%** (+33%). More frequent flasks during wave.
 - **Heal per flask** 15 → **18** HP (+20%). Each one chips off a meaningful slice of the 120 HP pool.
 - Stale comment fixed (said "4%", actual was 6%).
 
