@@ -87,8 +87,15 @@ export function updatePlayer(game, dt) {
   if (keys['s'] || keys['arrowdown']) vy += 1;
   if (keys['a'] || keys['arrowleft']) vx -= 1;
   if (keys['d'] || keys['arrowright']) vx += 1;
+  // Touch joystick adds analog input on top of WASD. Magnitude 0-1
+  // preserved (half-tilt = half speed) since we only normalize when the
+  // combined vector exceeds 1 (e.g. WASD diagonals).
+  if (game.touchInput && game.touchInput.active) {
+    vx += game.touchInput.dx;
+    vy += game.touchInput.dy;
+  }
   const mag = Math.hypot(vx, vy);
-  if (mag > 0) { vx /= mag; vy /= mag; }
+  if (mag > 1) { vx /= mag; vy /= mag; }
 
   const speedBonus = player.berserker > 0 ? 1.5 : 1;
   player.x += vx * player.speed * speedBonus * dt;

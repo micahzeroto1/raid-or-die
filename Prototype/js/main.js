@@ -15,6 +15,7 @@ import { initEventHandlers, emit, tickTickHandlers } from './events.js';
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
+const gameFrame = document.querySelector('.game-frame');
 
 // --- Game State (initialized so render() works before newGame()) ---
 const game = {
@@ -28,7 +29,8 @@ const game = {
   enemyProjectiles: [],
   wave: 0, waveTimer: 30, spawnTimer: 1, killCount: 0, gameTime: 0, totalKills: 0, totalSilver: 0,
   shake: 0, lastTime: 0, bossSpawned: false,
-  keys: {}
+  keys: {},
+  touchInput: { dx: 0, dy: 0, active: false }
 };
 initEventHandlers(game);
 
@@ -38,6 +40,92 @@ window.addEventListener('keydown', e => {
   if (e.key === ' ') { e.preventDefault(); tryBerserker(game); }
 });
 window.addEventListener('keyup', e => game.keys[e.key.toLowerCase()] = false);
+
+// --- Touch input (joystick + berserk button) ---
+const joystickEl = document.getElementById('touchJoystick');
+const joystickThumb = document.getElementById('touchJoystickThumb');
+const berserkBtn = document.getElementById('berserkBtn');
+
+if (joystickEl && joystickThumb) {
+  const DRAG_RADIUS = 40; // px from joystick center
+  let activeTouchId = null;
+  let baseX = 0, baseY = 0;
+
+  function startTouch(t) {
+    if (activeTouchId !== null) return;
+    const rect = joystickEl.getBoundingClientRect();
+    baseX = rect.left + rect.width / 2;
+    baseY = rect.top + rect.height / 2;
+    activeTouchId = t.identifier;
+    updateThumb(t.clientX, t.clientY);
+  }
+  function moveTouch(touchList) {
+    for (const t of touchList) {
+      if (t.identifier === activeTouchId) {
+        updateThumb(t.clientX, t.clientY);
+      }
+    }
+  }
+  function endTouch(touchList) {
+    for (const t of touchList) {
+      if (t.identifier === activeTouchId) {
+        activeTouchId = null;
+        game.touchInput.dx = 0;
+        game.touchInput.dy = 0;
+        game.touchInput.active = false;
+        joystickThumb.style.transform = 'translate(0px, 0px)';
+      }
+    }
+  }
+  function updateThumb(clientX, clientY) {
+    let dx = clientX - baseX;
+    let dy = clientY - baseY;
+    const d = Math.hypot(dx, dy);
+    if (d > DRAG_RADIUS) {
+      dx = (dx / d) * DRAG_RADIUS;
+      dy = (dy / d) * DRAG_RADIUS;
+    }
+    joystickThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+    game.touchInput.dx = dx / DRAG_RADIUS;
+    game.touchInput.dy = dy / DRAG_RADIUS;
+    game.touchInput.active = true;
+  }
+
+  joystickEl.addEventListener('touchstart', e => { e.preventDefault(); startTouch(e.changedTouches[0]); }, { passive: false });
+  joystickEl.addEventListener('touchmove',  e => { e.preventDefault(); moveTouch(e.changedTouches); },     { passive: false });
+  joystickEl.addEventListener('touchend',   e => { e.preventDefault(); endTouch(e.changedTouches); },      { passive: false });
+  joystickEl.addEventListener('touchcancel',e => { e.preventDefault(); endTouch(e.changedTouches); },      { passive: false });
+}
+
+if (berserkBtn) {
+  const fire = e => { e.preventDefault(); tryBerserker(game); };
+  berserkBtn.addEventListener('touchstart', fire, { passive: false });
+  berserkBtn.addEventListener('click', fire);
+}
+
+// Camera follows player via CSS transform on the canvas. On desktop the
+// canvas matches game-frame size so the math collapses to (0, 0). On
+// mobile the canvas is larger than game-frame and pans to keep player
+// roughly centered, clamped at world bounds.
+function updateCameraScroll() {
+  if (!gameFrame) return;
+  const frameW = gameFrame.clientWidth;
+  const frameH = gameFrame.clientHeight;
+  const maxCamX = Math.max(0, W - frameW);
+  const maxCamY = Math.max(0, H - frameH);
+  let camX = game.player.x - frameW / 2;
+  let camY = game.player.y - frameH / 2;
+  if (camX < 0) camX = 0; else if (camX > maxCamX) camX = maxCamX;
+  if (camY < 0) camY = 0; else if (camY > maxCamY) camY = maxCamY;
+  canvas.style.transform = `translate(${-camX}px, ${-camY}px)`;
+}
+
+function updateBerserkBtnState() {
+  if (!berserkBtn) return;
+  const p = game.player;
+  const ready = p.rage >= p.maxRage && p.berserker <= 0;
+  berserkBtn.classList.toggle('ready', ready);
+}
 
 // ============================================================================
 // Game Initialization
@@ -109,6 +197,8 @@ function loop(t) {
   if (game.state === 'playing' || game.state === 'shop' || game.state === 'gameover' || game.state === 'victory') {
     updateHUD(game);
   }
+  updateCameraScroll();
+  updateBerserkBtnState();
   requestAnimationFrame(loop);
 }
 

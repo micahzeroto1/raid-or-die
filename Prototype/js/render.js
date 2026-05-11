@@ -39,12 +39,8 @@ export function render(game) {
   // Draw monastery facade
   drawMonastery(ctx, W, gameTime);
 
-  // Vignette over everything
-  const grad = ctx.createRadialGradient(W/2, H/2, H * 0.35, W/2, H/2, H * 0.75);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+  // (Vignette moved to a CSS pseudo-element on .game-frame so it stays
+  // viewport-centered when the camera pans on mobile.)
 
   // --- Pickups ---
   for (const pk of pickups) {

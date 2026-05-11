@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>RAID OR DIE — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,7 +60,28 @@ body {
   overflow: hidden;
 }
 
-canvas { display: block; width: 100%; height: 100%; }
+/* Canvas is fixed at the world's physical size; on devices smaller than
+   960x640 the canvas overflows the game-frame and JS pans it via
+   transform to follow the player. */
+canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 960px;
+  height: 640px;
+}
+
+/* Viewport-centered vignette (replaces the canvas-drawn one so it stays
+   correct when the camera pans on mobile). */
+.game-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+}
 
 .overlay {
   position: absolute;
@@ -520,6 +542,85 @@ canvas { display: block; width: 100%; height: 100%; }
 .flash.gold { background: var(--gold); }
 .flash.green { background: #5aa05a; }
 
+/* Touch controls — hidden on desktop with mouse/trackpad. Shown only on
+   coarse-pointer (phone / tablet / touchscreen-only). */
+.touch-controls {
+  display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .touch-controls { display: block; }
+}
+
+.touch-joystick {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  width: 110px;
+  height: 110px;
+  border: 2px solid var(--bronze-dark);
+  border-radius: 50%;
+  background: rgba(10, 10, 13, 0.5);
+  touch-action: none;
+  z-index: 8;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--bronze), var(--bronze-dark));
+  border: 1px solid var(--gold);
+  box-shadow: 0 0 8px rgba(229, 184, 99, 0.4);
+  pointer-events: none;
+  transition: transform 0.05s linear;
+}
+
+.berserk-btn {
+  position: absolute;
+  bottom: 28px;
+  right: 28px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid var(--bronze-dark);
+  background: rgba(10, 10, 13, 0.5);
+  color: var(--bone-dim);
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  touch-action: manipulation;
+  z-index: 8;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.05s, box-shadow 0.15s, background 0.15s;
+}
+
+.berserk-btn.ready {
+  background: linear-gradient(180deg, var(--rage), var(--blood-dark));
+  border-color: var(--gold);
+  color: var(--bone);
+  box-shadow: 0 0 20px var(--rage), 0 0 40px rgba(212, 75, 31, 0.5);
+  animation: berserk-pulse 0.8s infinite;
+}
+
+.berserk-btn:active {
+  transform: scale(0.92);
+}
+
+@keyframes berserk-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--rage), 0 0 40px rgba(212, 75, 31, 0.5); }
+  50% { box-shadow: 0 0 30px var(--rage), 0 0 60px rgba(247, 200, 74, 0.7); }
+}
+
 .death-banner {
   font-family: 'Cinzel', serif;
   font-weight: 900;
@@ -660,6 +761,14 @@ canvas { display: block; width: 100%; height: 100%; }
         <div class="stat"><div class="label">Time</div><div class="value" id="vTime">0:00</div></div>
       </div>
       <button class="btn primary" id="victoryBtn">Raid Again</button>
+    </div>
+
+    <!-- Touch controls (only shown on coarse-pointer devices) -->
+    <div class="touch-controls">
+      <div class="touch-joystick" id="touchJoystick">
+        <div class="touch-joystick-thumb" id="touchJoystickThumb"></div>
+      </div>
+      <button class="berserk-btn" id="berserkBtn">RAGE</button>
     </div>
   </div>
 </div>
