@@ -1,5 +1,5 @@
 # RAID OR DIE
-**Game Design Document v1.1**
+**Game Design Document v1.2**
 
 *"The last raid is never the last raid."*
 
@@ -63,31 +63,47 @@ Rage bar fills as you take and deal damage. Tap to trigger. Manifests differentl
 - 4 weapon slots (mobile-friendly, forces specialization)
 - 25 weapons in v1 pool (15 unlocked at start, 10 via Forge)
 - Types: melee, thrown, ranged, magic
+- Each weapon has tags for archetype-scoped item interactions (thrown, ranged, melee, magic)
 - Auto-fire by their own rules, no in-combat switching
 - 4 upgrade tiers per weapon
 - Swap weapons at shop between waves only
 
+**Execution patterns** (validated in Stage 2 prototype):
+
+| Pattern | Used by | Mechanic |
+|---|---|---|
+| Projectile | Axe, Knife, Bow, Rune | Spawns projectile that travels until impact or lifetime expires |
+| Arc | Warhammer | Instant damage to all enemies in a radius around the player on the swing frame |
+| Boomerang | Mjolnir | Projectile travels outward, returns to player's current position, deals damage on both legs |
+
+Bow is non-piercing (precision/executioner identity). Pierce identity reserved for Spear and other weapons.
+
 ## Items and synergies
 
 - 50 items in v1 pool (25 unlocked at start, 25 via Forge)
-- Categories: stat boosters, conditional procs, synergy enablers, legendaries
-- Rarities: common, uncommon, rare, legendary
+- Item data shape: id, name, cost, rarity, archetype tag, description, effects array
+- Effect types: stat_boost (additive or multiplicative, optionally scoped to weapon tag), on_kill, on_hit, on_take_damage, on_low_hp, on_tick, gain_stack, per_stack_modifier, apply_status, instant_heal
+- Rarities: common, uncommon, rare, legendary (shop rolls weighted 50/30/15/5)
 - 10-15 of 50 have class affinity (extra effect for aligned god, still useful universally)
 - No slot limit, stack freely
 
 **8 build archetypes the item pool must support:**
-1. Berserker Rage (Odin-coded)
-2. Shield Wall (Thor-coded)
-3. Skald Magic (Freya-coded)
-4. Trickster (Loki-coded)
-5. Raven Storm
-6. Frost
-7. Thrown Weapons
-8. Lightning Chain
+1. Berserker Rage (Odin-coded) — anchored on kill stacks, low-HP triggers
+2. Shield Wall (Thor-coded) — anchored on armor, damage reduction procs
+3. Skald Magic (Freya-coded) — mechanics TBD (needs design pass)
+4. Trickster (Loki-coded) — anchored on crit/luck (needs crit system implementation)
+5. Raven Storm — mechanics TBD (needs design pass)
+6. Frost — anchored on Rune weapon's Frost status, slow stacking, frost duration items
+7. Thrown Weapons — anchored on weapon tag system, scoped damage and fire-rate boosts
+8. Lightning Chain — needs chain damage system (target selection, propagation, falloff)
+
+Berserker, Shield Wall, Frost, and Thrown archetypes have mechanical anchors validated in the Stage 2 prototype. Skald Magic, Trickster, Lightning Chain, and Raven Storm require additional system implementation in production.
 
 ## Stats (13 total)
 
 Max HP, Armor, HP Regen, Damage, Attack Speed, Range, Crit Chance, Dodge, Move Speed, Pickup Range, Luck, God-Power Charge Rate, Gold Find.
+
+Armor uses flat-subtract with a floor of 1 (prevents invincibility builds).
 
 ## Currencies
 
@@ -145,7 +161,17 @@ Apple Game Center + Google Play Games integration. Friend leaderboards deferred 
 | **Elite** | Enemy Berserker |
 | **Bosses** | The Abbot, Bridge Troll, The Jarl, The Wall-Captain |
 
+Enemy AI uses a behavior dispatch system (chase, ranged) validated in Stage 2 prototype, extensible to kite/flank/ambush in production without architectural rework.
+
 Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatural enemies are Ragnarok prep. Justifies the visual mix.
+
+## Status effects on enemies
+
+Each enemy can carry status effects via a generic status system:
+- **Frost:** slow multiplier applied to movement, timer counts down, visible blue tint, refreshes on rehit
+- Future: burn, shock, poison (architected to slot in without refactor)
+
+Player has modifier stats that affect all applications of a status (frostDurationBonus, frostStrengthBonus) so items that boost Frost work uniformly across every Frost source.
 
 ## Arenas (5 for v1)
 
@@ -161,7 +187,7 @@ Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatur
 
 **Style:** stylized pixel art with Norse motifs. Higher resolution than Brotato (more detail per sprite). Reference: Octopath Traveler, Sea of Stars, Eastward for sprite density. Not 8-bit retro.
 
-**Tooling:** Aseprite for final sprites. Midjourney, PixelLab, Stable Diffusion with pixel LoRAs for concept and reference. Hand-clean AI output in Aseprite into game-ready assets.
+**Tooling:** Aseprite for final sprites. Nano Banana, Midjourney, PixelLab, Stable Diffusion with pixel LoRAs for concept and reference. Hand-clean AI output in Aseprite into game-ready assets.
 
 **Palette by zone:**
 
@@ -175,12 +201,19 @@ Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatur
 
 **Mobile readability rules (non-negotiable):**
 - Player accent color always distinct (red cape, glowing rune)
-- Enemy projectiles red/orange, player projectiles blue/white
+- Enemy projectiles red/orange, player projectiles blue/white or weapon-branded
 - Pickups glow unique color
 - High contrast against ground always
 - Each enemy type has unique silhouette (silhouette test in grayscale)
+- Dynamic tactical stats (Berserker stacks, armor) get visible HUD elements
 
-**Effects:** stylized pixel violence. Pixel particles for impacts. Cartoon-y death animations (poof of dust, comic crumple). No realistic gore.
+**Effects:** stylized pixel violence. Pixel particles for impacts in weapon brand color. Cartoon-y death animations (poof of dust, comic crumple). No realistic gore.
+
+**Hit feedback baseline** (validated in Stage 2):
+- Impact particles in weapon brand color at hit point
+- Brief enemy hit flash (white tint, ~0.06s)
+- Floating damage number popup, fades over 0.5s
+- Weapons whose projectile alone doesn't read at fire time get supplementary feedback (e.g., bow gets bowstring flash plus arrow trail)
 
 ## Audio direction (rough)
 
@@ -203,6 +236,13 @@ Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatur
 - Valhalla hub (4 stations)
 - 3 leaderboards
 
+**Stage 2 prototype validation status (in progress):**
+- 6 weapons designed (Throwing Axe, Throwing Knife, Warhammer, Longbow, Rune of Frost, Mjolnir)
+- 14 items designed (6 baseline + 8 archetype)
+- 4 of 8 archetypes anchored mechanically (Berserker, Shield Wall, Frost, Thrown)
+- Architecture validated: FIRE_PATTERNS dispatch supports 3 execution patterns, EFFECT_HANDLERS supports 9 effect types, event emitter for hooks, weapon tag system, status effects on enemies, scoped stat overlays
+- Remaining Stage 2: Step 8 polish (rarity colors + stack HUD), Step 9 full tuning playtest as the gate to Stage 3
+
 **Post-launch roadmap:**
 - 5th and 6th gods (Tyr, Heimdall)
 - Keepsakes / equipped passives
@@ -222,7 +262,7 @@ Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatur
 
 | Layer | Tool |
 |---|---|
-| Engine (prototype) | Vanilla HTML5 + Canvas + JavaScript |
+| Engine (prototype) | Vanilla HTML5 + Canvas + JavaScript, ES6 modules |
 | Engine (production) | PixiJS or Phaser (decided end of Stage 4) |
 | Code | JavaScript with ES6 modules, paired with Claude Code |
 | Art | Aseprite + AI generation (Nano Banana, Midjourney, PixelLab, SD pixel LoRAs) |
@@ -239,8 +279,12 @@ Lore framing: Saxon-themed enemies are Earth raid memories. Frost and supernatur
 - Rune drop rate beyond first-time clears
 - Co-op design specifics (deferred to v2)
 - Monetization model (premium upfront, freemium, or free + cosmetics)
-- Specific weapon list (25 to design)
-- Specific item list (50 to design)
+- Remaining 19 weapons to design (6 of 25 complete in Stage 2 prototype)
+- Remaining 36 items to design (14 of 50 complete in Stage 2 prototype)
+- Skald Magic mechanical definition (needed before Freya class implementation)
+- Raven Storm mechanical definition
+- Lightning Chain system (target selection, propagation, falloff math)
+- Crit system implementation (needed before Trickster archetype can land)
 - Music budget decision (custom composer vs AI-only)
 
 ## North star
