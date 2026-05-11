@@ -22,14 +22,19 @@ export function spawnEnemy(game, type) {
     else { x = rand(40, W - 40); y = H + margin; }
   }
 
+  // Per-enemy variance + occasional "elite" variants:
+  //  - ±25% speed variance (the usual herd-spread)
+  //  - 20% chance VANGUARD: extra ×1.30 speed (sprints ahead of pack)
+  //  - 10% chance ELITE: ×1.50 HP (visibly tankier on inspection)
+  // Variants can stack: 1-in-50 fast tank. Boss bypasses this (spawnBoss).
+  let speedMult = 0.75 + Math.random() * 0.50;
+  if (Math.random() < 0.20) speedMult *= 1.30;
+  const eliteHpMult = Math.random() < 0.10 ? 1.50 : 1.0;
+
   game.enemies.push({
     type, x, y, r: def.r,
-    hp: def.hp, maxHp: def.hp,
-    // Per-enemy speed variance ±25% so the crowd spreads into vanguards
-    // and stragglers instead of moving as one synchronized herd. Wider
-    // range now creates real individual threats — fast peasants can
-    // surprise the player while stragglers fill in behind.
-    speed: def.speed * (0.75 + Math.random() * 0.50),
+    hp: def.hp * eliteHpMult, maxHp: def.hp * eliteHpMult,
+    speed: def.speed * speedMult,
     damage: def.damage,
     silver: def.silver,
     color: def.color, accent: def.accent,
@@ -175,20 +180,20 @@ function updateBoss(game, e, dt) {
     e.x += (dx / d) * e.speed * slowMult * dt;
     e.y += (dy / d) * e.speed * slowMult * dt;
   }
-  // Fire 3-bead spread
+  // Fire 5-bead spread (denser barrage, faster cooldown, harder beads)
   e.fireCooldown -= dt;
   if (e.fireCooldown <= 0) {
     const angle = Math.atan2(player.y - e.y, player.x - e.x);
-    for (let j = -1; j <= 1; j++) {
+    for (let j = -2; j <= 2; j++) {
       game.enemyProjectiles.push({
         x: e.x, y: e.y,
-        vx: Math.cos(angle + j * 0.25) * 220,
-        vy: Math.sin(angle + j * 0.25) * 220,
-        r: 8, damage: 15, life: 3, rotation: 0,
+        vx: Math.cos(angle + j * 0.15) * 220,
+        vy: Math.sin(angle + j * 0.15) * 220,
+        r: 8, damage: 20, life: 3, rotation: 0,
         type: 'prayer_bead'
       });
     }
-    e.fireCooldown = 1.7;
+    e.fireCooldown = 1.3;
   }
 }
 

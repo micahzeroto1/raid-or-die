@@ -16,7 +16,14 @@ export function updateSpawning(game, dt) {
     for (let i = 0; i < def.spawnCount; i++) {
       spawnEnemy(game, choice(def.types));
     }
-    game.spawnTimer = def.spawnInterval;
+    // Linear interp from spawnInterval -> spawnIntervalEnd over wave duration.
+    // Wave 1 omits spawnIntervalEnd → falls back to constant spawnInterval.
+    if (def.spawnIntervalEnd != null) {
+      const progress = 1 - (game.waveTimer / def.duration);  // 0 -> 1
+      game.spawnTimer = def.spawnInterval + (def.spawnIntervalEnd - def.spawnInterval) * progress;
+    } else {
+      game.spawnTimer = def.spawnInterval;
+    }
   }
 }
 

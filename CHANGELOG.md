@@ -23,6 +23,37 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[difficulty-ramp]` + `[abbot-barrage]` + `[enemy-variants]`
+
+### Spawn rate ramps within a wave
+New optional `spawnIntervalEnd` field per wave. `updateSpawning` linear-interpolates from `spawnInterval` to `spawnIntervalEnd` based on elapsed wave time.
+
+- Wave 2: 0.5s → 0.35s (last 10s noticeably busier than first 10s)
+- Wave 3: 0.55s → 0.40s
+- Wave 1: omitted, stays constant — tutorial
+
+Net enemy count per wave goes up ~16% from the ramp.
+
+### Abbot bead barrage upgraded
+- 3 beads → **5 beads** per volley
+- Angle step 0.25 rad → **0.15 rad** (denser cone)
+- Damage per bead 15 → **20**
+- Fire cooldown 1.7s → **1.3s**
+
+Boss now feels like a bullet-hell encounter instead of a sparse shotgun.
+
+### Asymmetric variants in `spawnEnemy`
+On each spawn (excluding boss):
+- 20% **Vanguard**: extra ×1.30 speed multiplier on top of existing ±25% variance. Sprints ahead of pack.
+- 10% **Elite**: ×1.50 HP. Noticeably tankier.
+- Variants can stack (1-in-50 fast tank).
+
+No visual distinction yet — player learns from behavior. Add a tint / radius bump in a follow-up if it feels random.
+
+**Files**: `Prototype/js/config.js`, `Prototype/js/waves.js`, `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[difficulty-bump-w2w3]`
 
 Difficulty bumps requested for waves 2-3:
