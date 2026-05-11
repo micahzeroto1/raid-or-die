@@ -23,6 +23,30 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[wave2-mob]` + `[abbot-phase2]` + `[silver-trim-militia]`
+
+Wave 2/3 polish pass after live playtest. Three coordinated changes, all on the *behavior* axis (not body count):
+
+**Militia silver trim** — wave 2/3 wallets were still bloated by the sheer density of militia. Peasant/archer at 5 felt right; just the militia drop was too generous.
+- **Militia silver** 5 → **4**. Peasant/archer/knight unchanged.
+
+**Militia flanking** — the herd still moved as a giant mob; separation steering broke overlap but not pursuit shape. New behavior splits militia into approach lanes at spawn so they arrive as three converging streams instead of one rolling wall.
+- At spawn (militia only): 40% left flank, 40% right flank, 20% direct.
+- In `updateChaseBehavior`: aim point shifts perpendicular to player-vector by ±85px. Falloff drops the offset to 0 within 80px so melee still converges.
+- Other types unchanged — peasants/knights/archers chase normally.
+- No new bodies, no speed/HP changes — just where they go on the way in.
+
+**Abbot phase 2** — at high character stats the boss became a long DPS check with no tension. Now at <50% HP he shifts gears.
+- One-shot telegraph: screen shake + dark-purple particle burst on phase entry.
+- Bead cadence 1.3s → 0.85s (35% faster).
+- Bead spread 0.15 → 0.10 rad (tighter, harder to strafe past).
+- Persists for the rest of the fight via `e.phase2` flag.
+- No HP bump, no extra attack pattern. Same fight, sharper second half.
+
+Index: `[wave2-mob]`, `[abbot-phase2]`, `[silver-trim-militia]`.
+
+---
+
 ## 2026-05-11 — `[silver-trim]` + `[wave-heal-revert]`
 
 Two-axis dial-back after the last pass overshot:

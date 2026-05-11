@@ -31,6 +31,16 @@ export function spawnEnemy(game, type) {
   if (Math.random() < 0.15) speedMult *= 1.30;
   const eliteHpMult = Math.random() < 0.10 ? 1.50 : 1.0;
 
+  // Militia flanking: each spawns into a lane so the mob splits into
+  // converging streams (left flank / right flank / direct) instead of
+  // arriving as one rolling wall. Offset decays inside 80px so melee
+  // still lands. 40/40/20 distribution biases toward flank pressure.
+  let lateralOffset;
+  if (type === 'militia') {
+    const r = Math.random();
+    lateralOffset = r < 0.40 ? -85 : r < 0.80 ? 85 : 0;
+  }
+
   game.enemies.push({
     type, x, y, r: def.r,
     hp: def.hp * eliteHpMult, maxHp: def.hp * eliteHpMult,
@@ -50,7 +60,8 @@ export function spawnEnemy(game, type) {
     fireRange: def.fireRange,
     fireRate: def.fireRate,
     arrowSpeed: def.arrowSpeed,
-    arrowDamage: def.arrowDamage
+    arrowDamage: def.arrowDamage,
+    lateralOffset
   });
 }
 
@@ -105,7 +116,21 @@ function separationForce(e, enemies, radius) {
 
 function updateChaseBehavior(game, e, dt) {
   const player = game.player;
-  const dx = player.x - e.x, dy = player.y - e.y;
+  // Lateral flanking target (militia only — see spawnEnemy). Aim point
+  // shifts perpendicular to the player-vector, with falloff so the offset
+  // is 0 within 80px (melee converges) and full at ≥300px.
+  let tx = player.x, ty = player.y;
+  if (e.lateralOffset) {
+    const ddx = player.x - e.x, ddy = player.y - e.y;
+    const dd = Math.hypot(ddx, ddy);
+    if (dd > 0.1) {
+      const perpX = -ddy / dd, perpY = ddx / dd;
+      const falloff = Math.max(0, Math.min(1, (dd - 80) / 220));
+      tx = player.x + perpX * e.lateralOffset * falloff;
+      ty = player.y + perpY * e.lateralOffset * falloff;
+    }
+  }
+  const dx = tx - e.x, dy = ty - e.y;
   const d = Math.hypot(dx, dy);
   if (d <= 0.1) return;
   // Chase unit vector + separation push (separation weighted higher so
@@ -180,6 +205,24 @@ function updateBoss(game, e, dt) {
     e.x += (dx / d) * e.speed * slowMult * dt;
     e.y += (dy / d) * e.speed * slowMult * dt;
   }
+  // Phase 2 trigger: <50% HP. Faster + tighter bead barrage so scaled
+  // player damage doesn't trivialize the second half of the fight.
+  // One-shot telegraph (shake + dark-purple particles) sells the shift.
+  if (!e.phase2 && e.hp < e.maxHp * 0.5) {
+    e.phase2 = true;
+    game.shake = 20;
+    for (let i = 0; i < 20; i++) {
+      game.particles.push({
+        x: e.x + rand(-30, 30), y: e.y + rand(-30, 30),
+        vx: rand(-150, 150), vy: rand(-150, 150),
+        life: rand(0.5, 1.0), maxLife: 1.0,
+        color: '#3a2a4a', r: rand(2, 4)
+      });
+    }
+  }
+  const beadStep = e.phase2 ? 0.10 : 0.15;
+  const beadCooldown = e.phase2 ? 0.85 : 1.3;
+
   // Fire 5-bead spread (denser barrage, faster cooldown, harder beads)
   e.fireCooldown -= dt;
   if (e.fireCooldown <= 0) {
@@ -187,13 +230,13 @@ function updateBoss(game, e, dt) {
     for (let j = -2; j <= 2; j++) {
       game.enemyProjectiles.push({
         x: e.x, y: e.y,
-        vx: Math.cos(angle + j * 0.15) * 220,
-        vy: Math.sin(angle + j * 0.15) * 220,
+        vx: Math.cos(angle + j * beadStep) * 220,
+        vy: Math.sin(angle + j * beadStep) * 220,
         r: 8, damage: 15, life: 3, rotation: 0,
         type: 'prayer_bead'
       });
     }
-    e.fireCooldown = 1.3;
+    e.fireCooldown = beadCooldown;
   }
 }
 
