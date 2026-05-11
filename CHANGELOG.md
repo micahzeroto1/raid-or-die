@@ -23,6 +23,20 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[rune-buff]`
+
+Rune felt underwhelming for a 150-silver exotic. Three buffs:
+
+- **Pierce 0 → 3** — glyph now passes through up to 4 enemies (initial + 3 pierces). At 60 damage per hit, a single Rune can clear a line.
+- **projectileSize 7 → 12** — bigger glyph visually AND a larger collision radius for the "sweep" feel.
+- **fireVolume 0.10 → 0.45** — heavy ritual magic, between Berserker (0.25) and Hammer (0.50). The cast now lands as an event.
+
+Frost status (timer 2.0s, slowMult 0.6) and frost-bonus stats from items still apply on every pierce hit — line-clears + line-slows.
+
+**Files**: `Prototype/js/weapons.js`.
+
+---
+
 ## 2026-05-11 — `[difficulty-ramp]` + `[abbot-barrage]` + `[enemy-variants]`
 
 ### Spawn rate ramps within a wave
