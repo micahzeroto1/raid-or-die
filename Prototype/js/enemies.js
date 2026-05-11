@@ -179,6 +179,7 @@ export function applyPlayerDamage(game, damage, opts = {}) {
   player.rage = Math.min(player.maxRage, player.rage + effectiveDamage * (opts.rageMultiplier ?? 1.2));
   game.shake = Math.max(game.shake, opts.shake ?? 8);
   flashScreen();
+  playSound('hurt', { volume: 0.2 });
   emit(game, 'onTakeDamage', { source: opts.source, damage: effectiveDamage });
   if (player.hp <= 0) {
     player.hp = 0;
@@ -307,7 +308,7 @@ export function applyDamage(game, enemy, j, damage, opts = {}) {
 
   // Impact thud (throttled so knife volleys + warhammer multi-hits don't
   // pile into an audio wall).
-  playSound('impact', { volume: 0.15, minInterval: 60 });
+  playSound('impact', { volume: 0.08, minInterval: 60 });
 
   // Lethal hit
   if (enemy.hp <= 0) killEnemy(game, j);

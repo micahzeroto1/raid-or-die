@@ -10,12 +10,13 @@
 
 const SOUND_PATHS = {
   axe:     'Assets/axe%20sound.mp3',
-  knives:  'Assets/knives%20sound.mp3',
+  knives:  'Assets/throwing%20knife%20sound.mp3',
   arrow:   'Assets/arrow%20sound.mp3',
   rune:    'Assets/rune%20sound.mp3',
   hammer:  'Assets/Hammer%20sound.mp3',
-  impact:  'Assets/impact%20sound.mp3',
-  berserk: 'Assets/Berserk%20sound.mp3'
+  impact:  'Assets/enemy%20impact%20sound.mp3',
+  berserk: 'Assets/Berserk%20sound.mp3',
+  hurt:    'Assets/viking%20hurt%20sound.mp3'
 };
 
 const lastPlayedAt = {};

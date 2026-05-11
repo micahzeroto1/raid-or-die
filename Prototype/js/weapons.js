@@ -48,6 +48,7 @@ export const WEAPONS = {
     spins: true,
     rageGain: 0.3,
     fireSound: 'knives',
+    fireVolume: 0.12,
     cost: 75
   },
   warhammer: {
@@ -205,7 +206,7 @@ function firePattern_projectile(game, slot, weapon) {
   }
 
   if (weapon.fireFlashDuration) slot.fireFlashTimer = weapon.fireFlashDuration;
-  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: weapon.fireVolume ?? 0.25 });
   return true;
 }
 
@@ -242,7 +243,7 @@ function firePattern_arc(game, slot, weapon) {
   }
   slot.swingTimer = 0.2;
   game.shake = Math.max(game.shake, 4);
-  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: weapon.fireVolume ?? 0.25 });
   return true;
 }
 
@@ -289,7 +290,7 @@ function firePattern_boomerang(game, slot, weapon) {
     speed: weapon.projectileSpeed
   });
 
-  if (weapon.fireSound) playSound(weapon.fireSound, { volume: 0.25 });
+  if (weapon.fireSound) playSound(weapon.fireSound, { volume: weapon.fireVolume ?? 0.25 });
   return true;
 }
 
