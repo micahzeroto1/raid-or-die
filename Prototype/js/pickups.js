@@ -25,7 +25,7 @@ export function updatePickups(game, dt) {
         game.totalSilver += pk.value;
         flashScreen('gold', 0.06);
         // Throttled so a magnet-pickup burst doesn't fire 20 sounds
-        playSound('hacksilver', { volume: 0.18, minInterval: 60 });
+        playSound('hacksilver', { volume: 0.30, minInterval: 60 });
       }
       pickups.splice(i, 1);
     }
