@@ -23,6 +23,20 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[difficulty-bump-w2w3]`
+
+Difficulty bumps requested for waves 2-3:
+
+- **Militia** (wave 2's new threat): hp 55→75, speed 90→100 (now faster than archer), damage 12→14.
+- **Knight** (wave 3's new threat): hp 140→180, speed 55→75 (no longer slow crawl — heavy charger), damage 22→28.
+- **Abbot**: hp 1800→3600 (doubled per request). Now requires multiple Berserker windows + sustained pressure.
+
+Speed variance ±25% still applies — top-end fast militia can hit ~125, fast knights ~94. Faster than archer base for both new variants.
+
+**Files**: `Prototype/js/config.js`.
+
+---
+
 ## 2026-05-11 — `[econ-bump-wave1]`
 
 ### Peasant drop 1 → 2
