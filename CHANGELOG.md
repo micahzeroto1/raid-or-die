@@ -23,6 +23,26 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-replace]` (round 3) + `[audio-volume]`
+
+### New sounds matched
+- `viking damage sound.mp3` (new) → renamed `hurt` key to `damage` in sounds.js; plays on player taking non-lethal damage in `applyPlayerDamage`.
+- `viking dying sound.mp3` (new) → new `dying` key; plays once on player death (HP ≤ 0). The per-hit damage sound is suppressed on the fatal hit so it doesn't stack with dying.
+- `enemy impact sound.mp3` (replaced file, same key) → already wired as `impact`. No code change for this one.
+- `viking hurt sound.mp3` removed from repo (orphaned after the rename).
+
+### Volume cut, round 2
+Across-the-board reduction so SFX don't fight the music:
+- All weapon fires default 0.25 → 0.10. Knife override 0.12 → 0.07.
+- Impact (per player → enemy hit) 0.08 → 0.04.
+- Damage (player hit) 0.20 → 0.10.
+- Berserker activation 0.50 → 0.25.
+- Dying (new) 0.35.
+
+**Files**: `Prototype/js/sounds.js`, `Prototype/js/enemies.js`, `Prototype/js/weapons.js`, `Prototype/js/player.js`, `Prototype/Assets/` (file replace + add + delete).
+
+---
+
 ## 2026-05-11 — `[chore-changelog]` + `[mobile-pause]`
 
 ### Changelog file added (this file)

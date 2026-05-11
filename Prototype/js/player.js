@@ -116,7 +116,7 @@ export function tryBerserker(game) {
     player.rage = 0;
     game.shake = 12;
     flashScreen('gold', 0.15);
-    playSound('berserk', { volume: 0.5 });
+    playSound('berserk', { volume: 0.25 });
     // burst particles
     for (let i = 0; i < 30; i++) {
       const a = (i / 30) * Math.PI * 2;

@@ -16,7 +16,8 @@ const SOUND_PATHS = {
   hammer:  'Assets/Hammer%20sound.mp3',
   impact:  'Assets/enemy%20impact%20sound.mp3',
   berserk: 'Assets/Berserk%20sound.mp3',
-  hurt:    'Assets/viking%20hurt%20sound.mp3'
+  damage:  'Assets/viking%20damage%20sound.mp3',
+  dying:   'Assets/viking%20dying%20sound.mp3'
 };
 
 const lastPlayedAt = {};
