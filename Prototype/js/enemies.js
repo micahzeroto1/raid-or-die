@@ -25,9 +25,11 @@ export function spawnEnemy(game, type) {
   game.enemies.push({
     type, x, y, r: def.r,
     hp: def.hp, maxHp: def.hp,
-    // Per-enemy speed variance ±15% so the crowd spreads into vanguards
-    // and stragglers instead of moving as one synchronized herd.
-    speed: def.speed * (0.85 + Math.random() * 0.30),
+    // Per-enemy speed variance ±25% so the crowd spreads into vanguards
+    // and stragglers instead of moving as one synchronized herd. Wider
+    // range now creates real individual threats — fast peasants can
+    // surprise the player while stragglers fill in behind.
+    speed: def.speed * (0.75 + Math.random() * 0.50),
     damage: def.damage,
     silver: def.silver,
     color: def.color, accent: def.accent,
@@ -382,7 +384,7 @@ export function killEnemy(game, j) {
     bob: rand(0, 6.28)
   });
   // Mead flask drop (4% chance, non-boss only)
-  if (!e.boss && Math.random() < 0.04) {
+  if (!e.boss && Math.random() < 0.06) {
     game.pickups.push({
       type: 'mead_flask',
       x: e.x + rand(-8, 8), y: e.y + rand(-8, 8),

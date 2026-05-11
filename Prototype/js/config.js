@@ -9,8 +9,8 @@ export const WAVES = [
 ];
 
 export const ENEMY_DEFS = {
-  peasant:  { r: 14, hp: 22,  speed: 70, damage: 8,  silver: 1,  color: '#7a7264', accent: '#a89f8c', behavior: 'chase',  gateChance: 0.75 },
-  militia:  { r: 17, hp: 55,  speed: 80, damage: 12, silver: 2,  color: '#5e6a52', accent: '#8aa07a', behavior: 'chase',  gateChance: 0.75 },
+  peasant:  { r: 14, hp: 22,  speed: 80, damage: 8,  silver: 1,  color: '#7a7264', accent: '#a89f8c', behavior: 'chase',  gateChance: 0.75 },
+  militia:  { r: 17, hp: 55,  speed: 90, damage: 12, silver: 2,  color: '#5e6a52', accent: '#8aa07a', behavior: 'chase',  gateChance: 0.75 },
   knight:   { r: 22, hp: 140, speed: 55, damage: 22, silver: 5,  color: '#454d55', accent: '#7d8993', behavior: 'chase',  gateChance: 0.75 },
   archer:   { r: 14, hp: 32,  speed: 90, damage: 8,  silver: 2,  color: '#6e5a3a', accent: '#a89058', behavior: 'ranged', gateChance: 0.20,
               preferredDistance: 250, fireRange: 350, fireRate: 2.4, arrowSpeed: 280, arrowDamage: 7 },

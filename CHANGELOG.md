@@ -23,6 +23,23 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[mead-bump]` + `[ai-melee-faster]`
+
+### Mead Flask drop rate 4% → 6%
+50% bump. Drops visible more often without being spammy.
+
+### Soldiers faster + wider variance
+- **Peasant** base speed 70 → 80
+- **Militia** base speed 80 → 90 (matches archer base)
+- **Knight** unchanged at 55 — heavy unit, intentionally slow
+- **Per-enemy speed variance** ±15% → ±25%
+
+Effective speed ranges after both changes: peasant 60-100, militia 67-112, knight 41-69, archer 67-112. Fast variants in each type can now sprint at archer-tier speeds; slow stragglers fill in behind. Combined with the existing separation behavior, crowds feel like individuals arriving in waves instead of a coordinated unit.
+
+**Files**: `Prototype/js/enemies.js`, `Prototype/js/config.js`.
+
+---
+
 ## 2026-05-11 — `[audio-longbow-louder]`
 
 Longbow `fireVolume: 0.35` override (was using default 0.10). Bow release now clearly audible — between Berserker (0.25) and Hammer (0.5) in the loudness hierarchy.
