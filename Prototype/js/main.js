@@ -189,12 +189,21 @@ function loop(t) {
 // ============================================================================
 // Button Wiring
 // ============================================================================
+const bgMusic = document.getElementById('bgMusic');
+if (bgMusic) bgMusic.volume = 0.4;
+
 function startGame() {
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('gameover').classList.add('hidden');
   document.getElementById('victory').classList.add('hidden');
   document.getElementById('shop').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
+  // Begin music on the first user-initiated start (browser autoplay
+  // policy blocks unsolicited audio). Catches the promise so a refusal
+  // doesn't throw.
+  if (bgMusic && bgMusic.paused) {
+    bgMusic.play().catch(() => { /* user can retap; ignore */ });
+  }
   newGame();
   game.state = 'playing';
 }
