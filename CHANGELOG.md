@@ -23,6 +23,20 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[econ-bump-wave1]`
+
+### Peasant drop 1 → 2
+Shop 1 felt stingy — only one item affordable on average. Bumping peasant drop directly raises wave 1 income (~75% peasants by pool weight) without dramatically inflating later waves where peasants are a smaller share.
+
+Income deltas:
+- Wave 1: 125 → 200 silver (+60%, ~2-3 cheap items now affordable)
+- Wave 2: 252 → 280 silver (+11%)
+- Wave 3: 422 → 449 silver (+6%)
+
+**Files**: `Prototype/js/config.js`.
+
+---
+
 ## 2026-05-11 — `[audio-pickups]` + `[enemy-visual-distinguish]`
 
 ### Pickup sounds added
