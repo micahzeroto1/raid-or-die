@@ -1,4 +1,4 @@
-import { rand, randInt, dist } from './utils.js';
+import { rand, randInt, dist, clamp } from './utils.js';
 import { ENEMY_DEFS, GATE_X, GATE_Y, MONASTERY_HEIGHT } from './config.js';
 import { flashScreen, showGameOver } from './ui.js';
 
@@ -6,11 +6,13 @@ export function spawnEnemy(game, type) {
   const def = ENEMY_DEFS[type];
   const W = game.W, H = game.H;
   let x, y;
-  // 75% emerge from the gate, 25% flank from sides/bottom (reinforcements / scouts)
-  if (Math.random() < 0.75) {
+  const gateChance = def.gateChance ?? 0.75;
+  if (Math.random() < gateChance) {
+    // Through the monastery gate
     x = GATE_X + rand(-32, 32);
     y = GATE_Y - rand(0, 20);
   } else {
+    // Flank from arena edges (left, right, or bottom)
     const side = randInt(0, 2);
     const margin = 40;
     if (side === 0) { x = W + margin; y = rand(MONASTERY_HEIGHT + 30, H - 20); }
@@ -27,7 +29,13 @@ export function spawnEnemy(game, type) {
     color: def.color, accent: def.accent,
     hitFlash: 0,
     fireCooldown: rand(2, 4),
-    bob: rand(0, 6.28)
+    bob: rand(0, 6.28),
+    behavior: def.behavior,
+    preferredDistance: def.preferredDistance,
+    fireRange: def.fireRange,
+    fireRate: def.fireRate,
+    arrowSpeed: def.arrowSpeed,
+    arrowDamage: def.arrowDamage
   });
 }
 
@@ -41,11 +49,10 @@ export function spawnBoss(game, type) {
     silver: def.silver,
     color: def.color, accent: def.accent,
     hitFlash: 0,
-    fireCooldown: 2,
+    fireCooldown: 1.5,
     boss: true,
     bob: 0
   });
-  // Big visual flash on boss spawn
   game.shake = 30;
   for (let i = 0; i < 60; i++) {
     game.particles.push({
@@ -57,48 +64,121 @@ export function spawnBoss(game, type) {
   }
 }
 
+// --- Behavior dispatch (non-boss enemies) -----------------------------------
+
+function updateChaseBehavior(game, e, dt) {
+  const player = game.player;
+  const dx = player.x - e.x, dy = player.y - e.y;
+  const d = Math.hypot(dx, dy);
+  if (d > 0.1) {
+    e.x += (dx / d) * e.speed * dt;
+    e.y += (dy / d) * e.speed * dt;
+  }
+}
+
+function updateRangedBehavior(game, e, dt) {
+  const player = game.player;
+  const dx = player.x - e.x, dy = player.y - e.y;
+  const d = Math.hypot(dx, dy);
+  if (d > 0.1) {
+    const ux = dx / d, uy = dy / d;
+    if (d > e.preferredDistance + 30) {
+      // Too far: close in
+      e.x += ux * e.speed * dt;
+      e.y += uy * e.speed * dt;
+    } else if (d < e.preferredDistance - 30) {
+      // Too close: back away
+      e.x -= ux * e.speed * dt;
+      e.y -= uy * e.speed * dt;
+    }
+    // Else: hold position
+  }
+
+  e.fireCooldown -= dt;
+  if (d <= e.fireRange && e.fireCooldown <= 0) {
+    const angle = Math.atan2(player.y - e.y, player.x - e.x);
+    game.enemyProjectiles.push({
+      x: e.x, y: e.y,
+      vx: Math.cos(angle) * e.arrowSpeed,
+      vy: Math.sin(angle) * e.arrowSpeed,
+      r: 4,
+      damage: e.arrowDamage,
+      life: 2.0,
+      rotation: angle,
+      type: 'arrow'
+    });
+    e.fireCooldown = e.fireRate;
+  }
+}
+
+const BEHAVIORS = {
+  chase: updateChaseBehavior,
+  ranged: updateRangedBehavior
+};
+
+function updateBoss(game, e, dt) {
+  const player = game.player;
+  // Movement: chase
+  const dx = player.x - e.x, dy = player.y - e.y;
+  const d = Math.hypot(dx, dy);
+  if (d > 0.1) {
+    e.x += (dx / d) * e.speed * dt;
+    e.y += (dy / d) * e.speed * dt;
+  }
+  // Fire 3-bead spread
+  e.fireCooldown -= dt;
+  if (e.fireCooldown <= 0) {
+    const angle = Math.atan2(player.y - e.y, player.x - e.x);
+    for (let j = -1; j <= 1; j++) {
+      game.enemyProjectiles.push({
+        x: e.x, y: e.y,
+        vx: Math.cos(angle + j * 0.25) * 220,
+        vy: Math.sin(angle + j * 0.25) * 220,
+        r: 8, damage: 15, life: 3, rotation: 0,
+        type: 'prayer_bead'
+      });
+    }
+    e.fireCooldown = 1.7;
+  }
+}
+
+function clampEnemyPosition(game, e) {
+  e.x = clamp(e.x, e.r, game.W - e.r);
+  e.y = clamp(e.y, MONASTERY_HEIGHT + e.r + 8, game.H - e.r);
+}
+
+function applyTouchDamage(game, e) {
+  const player = game.player;
+  const d = Math.hypot(player.x - e.x, player.y - e.y);
+  if (d < e.r + player.r && player.invuln <= 0) {
+    player.hp -= e.damage;
+    player.invuln = 0.5;
+    player.rage = Math.min(player.maxRage, player.rage + e.damage * 1.2);
+    game.shake = Math.max(game.shake, 8);
+    flashScreen();
+    if (player.hp <= 0) {
+      player.hp = 0;
+      game.state = 'gameover';
+      setTimeout(() => showGameOver(game), 600);
+    }
+  }
+}
+
 export function updateEnemies(game, dt) {
-  const { enemies, enemyProjectiles, player } = game;
+  const enemies = game.enemies;
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     if (e.hitFlash > 0) e.hitFlash -= dt;
-    const dx = player.x - e.x, dy = player.y - e.y;
-    const d = Math.hypot(dx, dy);
-    if (d > 0.1) {
-      e.x += (dx / d) * e.speed * dt;
-      e.y += (dy / d) * e.speed * dt;
-    }
 
-    // Boss shoots
     if (e.boss) {
-      e.fireCooldown -= dt;
-      if (e.fireCooldown <= 0) {
-        const angle = Math.atan2(player.y - e.y, player.x - e.x);
-        for (let j = -1; j <= 1; j++) {
-          enemyProjectiles.push({
-            x: e.x, y: e.y,
-            vx: Math.cos(angle + j * 0.25) * 220,
-            vy: Math.sin(angle + j * 0.25) * 220,
-            r: 8, damage: 15, life: 3, rotation: 0
-          });
-        }
-        e.fireCooldown = 2.2;
-      }
+      updateBoss(game, e, dt);
+    } else {
+      const fn = BEHAVIORS[e.behavior] || updateChaseBehavior;
+      fn(game, e, dt);
     }
 
-    // Touch damage
-    if (d < e.r + player.r && player.invuln <= 0) {
-      player.hp -= e.damage;
-      player.invuln = 0.5;
-      player.rage = Math.min(player.maxRage, player.rage + e.damage * 1.2);
-      game.shake = Math.max(game.shake, 8);
-      flashScreen();
-      if (player.hp <= 0) {
-        player.hp = 0;
-        game.state = 'gameover';
-        setTimeout(() => showGameOver(game), 600);
-      }
-    }
+    clampEnemyPosition(game, e);
+    applyTouchDamage(game, e);
   }
 }
 
@@ -108,7 +188,6 @@ export function updateEnemyProjectiles(game, dt) {
     const p = enemyProjectiles[i];
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.life -= dt;
-    p.rotation += dt * 10;
     if (p.life <= 0 || p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) {
       enemyProjectiles.splice(i, 1);
       continue;
@@ -129,6 +208,44 @@ export function updateEnemyProjectiles(game, dt) {
   }
 }
 
+// Single hook for player → enemy damage. Handles hp, hit flash, impact
+// particles, damage-number popup, rage gain, and lethal kill dispatch.
+export function applyDamage(game, enemy, j, damage, opts = {}) {
+  enemy.hp -= damage;
+  enemy.hitFlash = 0.08;
+
+  const color = opts.color || '#c89c5f';
+  const hitX = opts.hitX ?? enemy.x;
+  const hitY = opts.hitY ?? enemy.y;
+  const count = opts.particleCount ?? 4;
+
+  // Impact sparks (brand-colored, scatter outward)
+  for (let k = 0; k < count; k++) {
+    game.particles.push({
+      x: hitX, y: hitY,
+      vx: rand(-80, 80), vy: rand(-80, 80),
+      life: 0.3, maxLife: 0.3,
+      color, r: rand(1, 2.5)
+    });
+  }
+
+  // Damage number popup (drifts upward, fades in final third)
+  game.particles.push({
+    kind: 'dmg_num',
+    x: enemy.x + rand(-6, 6), y: enemy.y - enemy.r,
+    vx: 0, vy: -70,
+    life: 0.5, maxLife: 0.5,
+    text: String(Math.ceil(damage))
+  });
+
+  // Rage
+  const rageGain = opts.rageGain ?? 1;
+  game.player.rage = Math.min(game.player.maxRage, game.player.rage + rageGain);
+
+  // Lethal hit
+  if (enemy.hp <= 0) killEnemy(game, j);
+}
+
 export function killEnemy(game, j) {
   const e = game.enemies[j];
   // Death particles
@@ -143,11 +260,22 @@ export function killEnemy(game, j) {
   }
   // Hacksilver drop
   game.pickups.push({
+    type: 'silver',
     x: e.x, y: e.y,
     r: 6,
     value: e.silver,
     bob: rand(0, 6.28)
   });
+  // Mead flask drop (4% chance, non-boss only)
+  if (!e.boss && Math.random() < 0.04) {
+    game.pickups.push({
+      type: 'mead_flask',
+      x: e.x + rand(-8, 8), y: e.y + rand(-8, 8),
+      r: 7,
+      heal: 15,
+      bob: rand(0, 6.28)
+    });
+  }
   if (e.boss) game.shake = 40;
   else game.shake = Math.max(game.shake, 3);
   game.killCount++;

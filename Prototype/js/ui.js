@@ -13,6 +13,8 @@ export function updateHUD(game) {
   document.getElementById('rageFill').style.width = `${(player.rage / player.maxRage) * 100}%`;
   document.getElementById('rageText').textContent = `${Math.floor(player.rage)} / 100`;
   document.getElementById('silverNum').textContent = game.totalSilver;
+  const shopSilver = document.getElementById('shopSilver');
+  if (shopSilver) shopSilver.textContent = game.totalSilver;
   const rl = document.getElementById('rageLabel');
   if (player.berserker > 0) {
     rl.textContent = `BERSERKR ${player.berserker.toFixed(1)}s`;
@@ -35,7 +37,7 @@ export function updateHUD(game) {
       if (slot) {
         const weapon = WEAPONS[slot.weaponId];
         box.className = 'weapon-slot filled';
-        box.textContent = weapon.name.charAt(0);
+        box.textContent = weapon.slotIcon || weapon.name.charAt(0);
         box.title = weapon.name;
       } else {
         box.className = 'weapon-slot empty';
@@ -46,6 +48,17 @@ export function updateHUD(game) {
 }
 
 export function showShop(game) {
+  game.reweaveCost = 15;
+  renderShopOffers(game);
+
+  const reweaveBtn = document.getElementById('reweaveBtn');
+  reweaveBtn.onclick = () => reweave(game);
+  updateReweaveBtn(game);
+
+  document.getElementById('shop').classList.remove('hidden');
+}
+
+function renderShopOffers(game) {
   const grid = document.getElementById('shopGrid');
   grid.innerHTML = '';
 
@@ -61,8 +74,23 @@ export function showShop(game) {
 
   weaponPicks.forEach(w => addWeaponCard(grid, game, w));
   itemPicks.forEach(u => addItemCard(grid, game, u));
+}
 
-  document.getElementById('shop').classList.remove('hidden');
+function reweave(game) {
+  if (game.totalSilver < game.reweaveCost) return;
+  game.totalSilver -= game.reweaveCost;
+  game.reweaveCost *= 2;
+  renderShopOffers(game);
+  updateReweaveBtn(game);
+}
+
+function updateReweaveBtn(game) {
+  const btn = document.getElementById('reweaveBtn');
+  if (!btn) return;
+  btn.textContent = `Reweave (${game.reweaveCost})`;
+  const unaffordable = game.totalSilver < game.reweaveCost;
+  btn.classList.toggle('disabled', unaffordable);
+  btn.disabled = unaffordable;
 }
 
 function addWeaponCard(grid, game, w) {
@@ -115,6 +143,7 @@ function refreshShopDisabled(game) {
       c.classList.toggle('disabled', game.totalSilver < cost);
     }
   });
+  updateReweaveBtn(game);
 }
 
 export function showGameOver(game) {
@@ -142,8 +171,9 @@ export function showVictory(game) {
 
 export function flashScreen(type = 'red', duration = 0.08) {
   const f = document.getElementById('flash');
-  f.classList.remove('gold');
+  f.classList.remove('gold', 'green');
   if (type === 'gold') f.classList.add('gold');
+  else if (type === 'green') f.classList.add('green');
   f.classList.add('active');
   setTimeout(() => f.classList.remove('active'), duration * 1000);
 }

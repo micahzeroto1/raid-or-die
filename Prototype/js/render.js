@@ -1,5 +1,6 @@
 import { MONASTERY_HEIGHT } from './config.js';
 import { rand } from './utils.js';
+import { WEAPONS } from './weapons.js';
 
 export function render(game) {
   const ctx = game.ctx;
@@ -49,19 +50,8 @@ export function render(game) {
   for (const pk of pickups) {
     pk.bob += 0.1;
     const yOff = Math.sin(pk.bob) * 2;
-    // Glow
-    ctx.fillStyle = 'rgba(237, 226, 200, 0.2)';
-    ctx.beginPath();
-    ctx.arc(pk.x, pk.y + yOff, pk.r + 6, 0, Math.PI * 2);
-    ctx.fill();
-    // Core
-    ctx.fillStyle = '#ede2c8';
-    ctx.beginPath();
-    ctx.arc(pk.x, pk.y + yOff, pk.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#8a6938';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    if (pk.type === 'mead_flask') drawMeadFlask(ctx, pk, yOff);
+    else drawHacksilver(ctx, pk, yOff);
   }
 
   // --- Enemies ---
@@ -74,26 +64,12 @@ export function render(game) {
 
   // --- Projectiles ---
   for (const p of projectiles) drawProjectile(ctx, p);
-  for (const p of enemyProjectiles) {
-    // Red prayer beads / curse bolt
-    ctx.fillStyle = '#a32424';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff8888';
-    ctx.beginPath();
-    ctx.arc(p.x - 1, p.y - 1, p.r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  for (const p of enemyProjectiles) drawEnemyProjectile(ctx, p);
 
   // --- Particles ---
   for (const p of particles) {
-    const a = p.life / p.maxLife;
-    ctx.globalAlpha = a;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.kind === 'dmg_num') drawDamageNumber(ctx, p);
+    else drawSpark(ctx, p);
   }
   ctx.globalAlpha = 1;
 
@@ -368,7 +344,41 @@ function drawPlayer(ctx, player, gameTime) {
   ctx.fill();
   ctx.restore();
 
+  // Hammer swing visuals (any slot with an arc weapon mid-swing)
+  for (const slot of p.weapons) {
+    if (!slot || !slot.swingTimer || slot.swingTimer <= 0) continue;
+    const weapon = WEAPONS[slot.weaponId];
+    if (!weapon || weapon.executionType !== 'arc') continue;
+    drawHammerSwing(ctx, slot, weapon);
+  }
+
+  // Fire-flash visuals (bow at release)
+  for (const slot of p.weapons) {
+    if (!slot || !slot.fireFlashTimer || slot.fireFlashTimer <= 0) continue;
+    const weapon = WEAPONS[slot.weaponId];
+    if (!weapon || !weapon.fireFlashDuration) continue;
+    drawBowstringFlash(ctx, slot, weapon, p.facing);
+  }
+
   ctx.restore();
+}
+
+function drawHammerSwing(ctx, slot, weapon) {
+  const SWING_DURATION = 0.2;
+  const t = Math.max(0, slot.swingTimer / SWING_DURATION); // 1 at peak, 0 at end
+  const radius = weapon.arcRange * (1.0 - (1.0 - t) * 0.12);
+  // Outer bright ring
+  ctx.strokeStyle = `rgba(229, 184, 99, ${t * 0.9})`;
+  ctx.lineWidth = 3 + t * 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  // Inner soft glow
+  ctx.strokeStyle = `rgba(247, 200, 74, ${t * 0.35})`;
+  ctx.lineWidth = 7 + t * 6;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 function drawEnemy(ctx, e) {
@@ -576,6 +586,62 @@ function drawEnemy(ctx, e) {
     ctx.beginPath();
     ctx.moveTo(e.r - 2, 5); ctx.lineTo(e.r + 4, -10);
     ctx.stroke();
+  } else if (e.type === 'archer') {
+    // Saxon archer: leather scout, hood, bow held in front, quiver on back
+    // Quiver behind body (drawn first so it sits behind)
+    ctx.fillStyle = '#3a2a18';
+    ctx.fillRect(-e.r + 1, -5, 4, 11);
+    ctx.strokeStyle = '#a89058';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-e.r + 2, -5); ctx.lineTo(-e.r + 2, -9);
+    ctx.moveTo(-e.r + 3, -5); ctx.lineTo(-e.r + 3, -10);
+    ctx.moveTo(-e.r + 4, -5); ctx.lineTo(-e.r + 4, -8);
+    ctx.stroke();
+
+    // Body (leather tunic)
+    ctx.fillStyle = flash ? '#ffffff' : e.color;
+    ctx.beginPath();
+    ctx.arc(0, 2, e.r - 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2a1f10';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Belt
+    ctx.strokeStyle = '#2a1808';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-e.r + 3, 6); ctx.lineTo(e.r - 3, 6);
+    ctx.stroke();
+
+    // Head (skin)
+    ctx.fillStyle = flash ? '#ffffff' : '#c8a880';
+    ctx.beginPath();
+    ctx.arc(0, -5, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Hood (dark cloth over top of head)
+    ctx.fillStyle = '#2a1f10';
+    ctx.beginPath();
+    ctx.arc(0, -5, 4, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#1a1208';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Bow (C-curve opening toward enemy, held to player-facing side)
+    ctx.strokeStyle = '#a89058';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(e.r - 1, -6);
+    ctx.quadraticCurveTo(e.r + 7, 0, e.r - 1, 6);
+    ctx.stroke();
+    // Bowstring
+    ctx.strokeStyle = 'rgba(237, 226, 200, 0.7)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(e.r - 1, -6); ctx.lineTo(e.r - 1, 6);
+    ctx.stroke();
   } else {
     // Fallback - generic enemy
     ctx.fillStyle = flash ? '#ffffff' : e.color;
@@ -600,6 +666,11 @@ function drawEnemy(ctx, e) {
 }
 
 function drawProjectile(ctx, p) {
+  if (p.shape === 'arrow') drawPlayerArrow(ctx, p);
+  else drawBladeProjectile(ctx, p);
+}
+
+function drawBladeProjectile(ctx, p) {
   const s = p.r;
   ctx.save();
   ctx.translate(p.x, p.y);
@@ -618,6 +689,181 @@ function drawProjectile(ctx, p) {
   ctx.fill();
   ctx.strokeStyle = p.edgeColor || '#8a6938';
   ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayerArrow(ctx, p) {
+  const s = p.r;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rotation);
+  // Soft warm glow halo (pops against dark battlefield)
+  ctx.fillStyle = 'rgba(255, 240, 200, 0.35)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s * 4, s * 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Wooden shaft
+  ctx.fillStyle = p.color || '#f0e4c8';
+  ctx.fillRect(-s * 2.5, -s * 0.25, s * 5, s * 0.5);
+  // Iron tip (triangle pointing forward)
+  ctx.fillStyle = p.edgeColor || '#3a2a1a';
+  ctx.beginPath();
+  ctx.moveTo(s * 2.5, -s * 0.8);
+  ctx.lineTo(s * 4.2, 0);
+  ctx.lineTo(s * 2.5, s * 0.8);
+  ctx.closePath();
+  ctx.fill();
+  // Fletching marks at the tail
+  ctx.strokeStyle = '#ede2c8';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-s * 2.5, -s * 0.3); ctx.lineTo(-s * 1.6, -s * 1.0);
+  ctx.moveTo(-s * 2.5, s * 0.3); ctx.lineTo(-s * 1.6, s * 1.0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawEnemyProjectile(ctx, p) {
+  if (p.type === 'arrow') drawArrow(ctx, p);
+  else drawPrayerBead(ctx, p);
+}
+
+function drawArrow(ctx, p) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rotation);
+  // Shaft (wood)
+  ctx.fillStyle = '#6e5a3a';
+  ctx.fillRect(-7, -1, 13, 2);
+  // Tip (dark iron, triangular)
+  ctx.fillStyle = '#1a1208';
+  ctx.beginPath();
+  ctx.moveTo(6, -2);
+  ctx.lineTo(10, 0);
+  ctx.lineTo(6, 2);
+  ctx.closePath();
+  ctx.fill();
+  // Fletching (two small marks at the back)
+  ctx.strokeStyle = '#d8c8a4';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-7, -1); ctx.lineTo(-5, -3);
+  ctx.moveTo(-7, 1); ctx.lineTo(-5, 3);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPrayerBead(ctx, p) {
+  // Red prayer beads / curse bolt (Abbot)
+  ctx.fillStyle = '#a32424';
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff8888';
+  ctx.beginPath();
+  ctx.arc(p.x - 1, p.y - 1, p.r * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawHacksilver(ctx, pk, yOff) {
+  // Soft bone-white glow
+  ctx.fillStyle = 'rgba(237, 226, 200, 0.2)';
+  ctx.beginPath();
+  ctx.arc(pk.x, pk.y + yOff, pk.r + 6, 0, Math.PI * 2);
+  ctx.fill();
+  // Coin core
+  ctx.fillStyle = '#ede2c8';
+  ctx.beginPath();
+  ctx.arc(pk.x, pk.y + yOff, pk.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#8a6938';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawMeadFlask(ctx, pk, yOff) {
+  // Amber glow on the ground
+  ctx.fillStyle = 'rgba(229, 184, 99, 0.28)';
+  ctx.beginPath();
+  ctx.arc(pk.x, pk.y + yOff, pk.r + 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(pk.x, pk.y + yOff);
+
+  // Drinking horn: narrow tip on left, wide rim on right
+  ctx.fillStyle = '#5a3a1f';
+  ctx.beginPath();
+  ctx.moveTo(-7, 1);                              // tip
+  ctx.bezierCurveTo(-3, -3, 3, -4, 7, -3);        // top arc
+  ctx.lineTo(7, 3);                                // rim outer
+  ctx.bezierCurveTo(3, 4, -2, 3, -7, 1);          // bottom arc back to tip
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#2a1a0e';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Iron rim band at the wide end
+  ctx.strokeStyle = '#7a6238';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(5, -3); ctx.lineTo(5, 3);
+  ctx.stroke();
+
+  // Amber mead glinting at the opening
+  ctx.fillStyle = '#e5b863';
+  ctx.beginPath();
+  ctx.ellipse(6, 0, 1, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Faint highlight along the top edge
+  ctx.strokeStyle = 'rgba(255, 220, 150, 0.5)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(-4, -2); ctx.lineTo(3, -3);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawSpark(ctx, p) {
+  const a = p.life / p.maxLife;
+  ctx.globalAlpha = a;
+  ctx.fillStyle = p.color;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDamageNumber(ctx, p) {
+  const t = p.life / p.maxLife;
+  // Fade out only in the final third of life
+  const a = t < 0.33 ? t * 3 : 1;
+  ctx.globalAlpha = a;
+  ctx.font = '700 14px Cinzel, serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.strokeText(p.text, p.x, p.y);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(p.text, p.x, p.y);
+}
+
+function drawBowstringFlash(ctx, slot, weapon, facing) {
+  const t = slot.fireFlashTimer / weapon.fireFlashDuration;
+  ctx.save();
+  ctx.rotate(facing);
+  ctx.strokeStyle = `rgba(229, 184, 99, ${t * 0.9})`;
+  ctx.lineWidth = 1.5;
+  const r0 = 8, r1 = 18 - t * 6;
+  ctx.beginPath();
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2;
+    ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+    ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+  }
   ctx.stroke();
   ctx.restore();
 }

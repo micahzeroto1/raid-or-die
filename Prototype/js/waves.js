@@ -47,8 +47,14 @@ export function updateWaveTimer(game, dt) {
 export function endWave(game) {
   game.state = 'shop';
   game.killCount = 0;
-  // clear pickups - collect remaining silver automatically
-  for (const pk of game.pickups) game.totalSilver += pk.value;
+  // Auto-collect remaining pickups: silver → wallet, mead → heal
+  for (const pk of game.pickups) {
+    if (pk.type === 'mead_flask') {
+      game.player.hp = Math.min(game.player.maxHp, game.player.hp + pk.heal);
+    } else {
+      game.totalSilver += pk.value;
+    }
+  }
   game.pickups = [];
   game.enemyProjectiles = [];
   setTimeout(() => showShop(game), 300);

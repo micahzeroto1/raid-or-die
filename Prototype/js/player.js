@@ -6,7 +6,7 @@ export function createPlayer(W, H) {
   return {
     x: W / 2, y: H - 120,
     r: 14,
-    hp: 100, maxHp: 100,
+    hp: 120, maxHp: 120,
     speed: 200,
     damageBonus: 0,        // additive bonus applied to every weapon's damage
     fireRateMult: 1.0,     // multiplier on weapon cooldown (lower = faster)
