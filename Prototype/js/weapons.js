@@ -63,6 +63,7 @@ export const WEAPONS = {
     arcRange: 80,
     color: '#c89c5f',
     fireSound: 'hammer',
+    fireVolume: 0.5,
     cost: 120
   },
   longbow: {

@@ -23,6 +23,30 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-hammer-louder]` + `[ai-separation]`
+
+### Hammer fire volume bumped
+- Warhammer `fireVolume: 0.5` (overrides the default 0.10). 2× the Berserker activation sound. Heavy thud, audible against music + impact stack.
+
+### Enemy separation steering
+Enemies were clumping into a single stacked blob since `updateChaseBehavior` and `updateRangedBehavior` only steered toward the player.
+
+Added `separationForce(e, enemies)` — boids-style repulsion vector from neighbors within `e.r * 2.2`, strength scales with closeness.
+
+Integrated into both behaviors:
+- **Chase**: combine `(chase unit vector) + 1.5 × separation`, normalize, apply at `e.speed * slowMult * dt`.
+- **Ranged**: combine `(sign × approach unit vector) + 1.5 × separation`, normalize, apply at base speed. `sign` is +1 (approach), -1 (retreat), or 0 (hold) per the existing preferred-distance band logic. Even "holding" archers now drift laterally apart from neighbors.
+
+**Speed budget preserved** — separation only redirects, doesn't accelerate. Wave difficulty unchanged.
+
+Boss left alone (only one Abbot at a time, no clumping to fix).
+
+Cost: O(N²) per frame. At ~50 enemies = 2,500 distance ops/frame, trivial for modern JS. Will revisit with a spatial grid if waves exceed ~100 entities.
+
+**Files**: `Prototype/js/weapons.js`, `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[audio-music-compress]`
 
 ### Einherjar March: 191 kbps → 128 kbps stereo

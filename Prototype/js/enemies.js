@@ -68,14 +68,43 @@ export function spawnBoss(game, type) {
 
 // --- Behavior dispatch (non-boss enemies) -----------------------------------
 
+// Boids-style separation: accumulate a repulsion vector from neighbors
+// within ~2.2× radius. Strength scales with closeness so heavily-stacked
+// enemies push apart strongly while distant ones barely contribute.
+function separationForce(e, enemies) {
+  let sx = 0, sy = 0;
+  const radius = e.r * 2.2;
+  for (const other of enemies) {
+    if (other === e) continue;
+    const dx = e.x - other.x;
+    const dy = e.y - other.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 0 && d < radius) {
+      const strength = (radius - d) / radius;
+      sx += (dx / d) * strength;
+      sy += (dy / d) * strength;
+    }
+  }
+  return { x: sx, y: sy };
+}
+
 function updateChaseBehavior(game, e, dt) {
   const player = game.player;
   const dx = player.x - e.x, dy = player.y - e.y;
   const d = Math.hypot(dx, dy);
-  if (d > 0.1) {
-    const slowMult = e.statuses?.frost?.slowMult ?? 1;
-    e.x += (dx / d) * e.speed * slowMult * dt;
-    e.y += (dy / d) * e.speed * slowMult * dt;
+  if (d <= 0.1) return;
+  // Chase unit vector + separation push (separation weighted higher so
+  // enemies actually space out instead of clumping). Combined vector is
+  // re-normalized before applying speed so total movement never exceeds
+  // e.speed * slowMult — wave difficulty preserved.
+  const slowMult = e.statuses?.frost?.slowMult ?? 1;
+  const sep = separationForce(e, game.enemies);
+  const vx = (dx / d) + sep.x * 1.5;
+  const vy = (dy / d) + sep.y * 1.5;
+  const vmag = Math.hypot(vx, vy);
+  if (vmag > 0.0001) {
+    e.x += (vx / vmag) * e.speed * slowMult * dt;
+    e.y += (vy / vmag) * e.speed * slowMult * dt;
   }
 }
 
@@ -86,16 +115,19 @@ function updateRangedBehavior(game, e, dt) {
   if (d > 0.1) {
     const ux = dx / d, uy = dy / d;
     const slowMult = e.statuses?.frost?.slowMult ?? 1;
-    if (d > e.preferredDistance + 30) {
-      // Too far: close in
-      e.x += ux * e.speed * slowMult * dt;
-      e.y += uy * e.speed * slowMult * dt;
-    } else if (d < e.preferredDistance - 30) {
-      // Too close: back away
-      e.x -= ux * e.speed * slowMult * dt;
-      e.y -= uy * e.speed * slowMult * dt;
+    // Approach (+1), retreat (-1), or hold (0). Separation force is added
+    // regardless of band so even "holding" archers spread apart laterally.
+    let sign = 0;
+    if (d > e.preferredDistance + 30) sign = 1;
+    else if (d < e.preferredDistance - 30) sign = -1;
+    const sep = separationForce(e, game.enemies);
+    const vx = sign * ux + sep.x * 1.5;
+    const vy = sign * uy + sep.y * 1.5;
+    const vmag = Math.hypot(vx, vy);
+    if (vmag > 0.0001) {
+      e.x += (vx / vmag) * e.speed * slowMult * dt;
+      e.y += (vy / vmag) * e.speed * slowMult * dt;
     }
-    // Else: hold position
   }
 
   e.fireCooldown -= dt;
