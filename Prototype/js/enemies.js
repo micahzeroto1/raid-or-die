@@ -25,7 +25,9 @@ export function spawnEnemy(game, type) {
   game.enemies.push({
     type, x, y, r: def.r,
     hp: def.hp, maxHp: def.hp,
-    speed: def.speed,
+    // Per-enemy speed variance ±15% so the crowd spreads into vanguards
+    // and stragglers instead of moving as one synchronized herd.
+    speed: def.speed * (0.85 + Math.random() * 0.30),
     damage: def.damage,
     silver: def.silver,
     color: def.color, accent: def.accent,
@@ -69,11 +71,13 @@ export function spawnBoss(game, type) {
 // --- Behavior dispatch (non-boss enemies) -----------------------------------
 
 // Boids-style separation: accumulate a repulsion vector from neighbors
-// within ~2.2× radius. Strength scales with closeness so heavily-stacked
+// within ~1.6× radius. Strength scales with closeness so heavily-stacked
 // enemies push apart strongly while distant ones barely contribute.
+// Tight radius + low weight at the call sites ensures chase still wins —
+// enemies converge on the player, separation only prevents stacking.
 function separationForce(e, enemies) {
   let sx = 0, sy = 0;
-  const radius = e.r * 2.2;
+  const radius = e.r * 1.6;
   for (const other of enemies) {
     if (other === e) continue;
     const dx = e.x - other.x;
@@ -99,8 +103,8 @@ function updateChaseBehavior(game, e, dt) {
   // e.speed * slowMult — wave difficulty preserved.
   const slowMult = e.statuses?.frost?.slowMult ?? 1;
   const sep = separationForce(e, game.enemies);
-  const vx = (dx / d) + sep.x * 1.5;
-  const vy = (dy / d) + sep.y * 1.5;
+  const vx = (dx / d) + sep.x * 0.6;
+  const vy = (dy / d) + sep.y * 0.6;
   const vmag = Math.hypot(vx, vy);
   if (vmag > 0.0001) {
     e.x += (vx / vmag) * e.speed * slowMult * dt;
@@ -121,8 +125,8 @@ function updateRangedBehavior(game, e, dt) {
     if (d > e.preferredDistance + 30) sign = 1;
     else if (d < e.preferredDistance - 30) sign = -1;
     const sep = separationForce(e, game.enemies);
-    const vx = sign * ux + sep.x * 1.5;
-    const vy = sign * uy + sep.y * 1.5;
+    const vx = sign * ux + sep.x * 0.6;
+    const vy = sign * uy + sep.y * 0.6;
     const vmag = Math.hypot(vx, vy);
     if (vmag > 0.0001) {
       e.x += (vx / vmag) * e.speed * slowMult * dt;

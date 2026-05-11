@@ -23,6 +23,20 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[ai-separation-tune]`
+
+### Herd-effect fix
+
+First pass on separation (1.5× weight, 2.2× radius) prevented stacking but created a synchronized herd: enemies orbited the player instead of closing, and the player could circle the pack and pick them off. Three follow-up tweaks:
+
+- **Separation weight 1.5 → 0.6** at both call sites. Chase pull (magnitude 1.0) now always dominates the separation push — enemies close on the player, separation only prevents physical overlap.
+- **Separation radius `e.r * 2.2` → `e.r * 1.6`** so repulsion kicks in only when enemies are nearly touching, not at a wide buffer.
+- **Per-enemy speed variance ±15%** in `spawnEnemy`. Some peasants emerge as fast vanguards, others as slow stragglers, breaking the single-blob look.
+
+**Files**: `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[audio-hammer-louder]` + `[ai-separation]`
 
 ### Hammer fire volume bumped
