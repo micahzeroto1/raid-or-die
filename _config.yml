@@ -1,0 +1,9 @@
+# GitHub Pages — exclude strategy/planning docs from the published site.
+# Only the Prototype/ folder needs to be reachable for play.
+exclude:
+  - raid_or_die_project_instructions.md
+  - raid_or_die_design_doc.md
+  - raid_or_die_build_plan.md
+  - .claude
+  - .gitignore
+  - README.md
