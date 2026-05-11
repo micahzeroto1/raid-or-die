@@ -23,6 +23,19 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[wave2-ease]`
+
+Wave 2 was too hard after stacking militia stat bumps + variance widen + vanguard + elite + spawn ramp. Surgical dial-back, not full revert:
+
+- **Wave 2 `spawnIntervalEnd`** 0.35 → **0.42**. Late-wave flurry softens from "30% denser end" to "16% denser end."
+- **Vanguard rate** 20% → **15%**. Fast variants still exist, just less frequent.
+
+Keeping militia stats, elite rate (10%), base spawn rate, and the speed-variance band. Wave 2 enemy count drops ~5-8%; the climactic swarm at wave end is gentler.
+
+**Files**: `Prototype/js/config.js`, `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[rune-buff]`
 
 Rune felt underwhelming for a 150-silver exotic. Three buffs:

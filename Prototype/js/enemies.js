@@ -28,7 +28,7 @@ export function spawnEnemy(game, type) {
   //  - 10% chance ELITE: ×1.50 HP (visibly tankier on inspection)
   // Variants can stack: 1-in-50 fast tank. Boss bypasses this (spawnBoss).
   let speedMult = 0.75 + Math.random() * 0.50;
-  if (Math.random() < 0.20) speedMult *= 1.30;
+  if (Math.random() < 0.15) speedMult *= 1.30;
   const eliteHpMult = Math.random() < 0.10 ? 1.50 : 1.0;
 
   game.enemies.push({

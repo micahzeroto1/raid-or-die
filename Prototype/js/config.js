@@ -7,7 +7,7 @@ export const WAVES = [
   { duration: 30, spawnInterval: 0.6, types: ['peasant', 'peasant', 'peasant', 'archer'], spawnCount: 2, label: 'Lindisfarne Beach' },
   // Wave 2 + 3: spawnIntervalEnd shrinks the interval across wave duration.
   // Linear interp from spawnInterval -> spawnIntervalEnd. Last seconds = flurry.
-  { duration: 35, spawnInterval: 0.5, spawnIntervalEnd: 0.35, types: ['peasant', 'militia', 'militia', 'archer', 'archer'], spawnCount: 2, label: 'Outer Cloister' },
+  { duration: 35, spawnInterval: 0.5, spawnIntervalEnd: 0.42, types: ['peasant', 'militia', 'militia', 'archer', 'archer'], spawnCount: 2, label: 'Outer Cloister' },
   { duration: 45, spawnInterval: 0.55, spawnIntervalEnd: 0.40, types: ['peasant', 'militia', 'militia', 'knight', 'archer', 'archer'], spawnCount: 2, label: 'The Abbey', boss: 'abbot' }
 ];
 
