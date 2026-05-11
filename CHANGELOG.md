@@ -23,6 +23,22 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[silver-trim]` + `[wave-heal-revert]`
+
+Two-axis dial-back after the last pass overshot:
+
+Silver — wallet stacks across waves, so the second bump (7/18) compounded into wave 3 having far too much to spend. Reverting that pass; keeping the first one.
+- **Peasant** 7 → **5**.
+- **Militia** 7 → **5**.
+- **Archer** 7 → **5**.
+- **Knight** 18 → **14**.
+
+Health reset — undoing the between-wave full-heal. Carrying chip damage between waves IS the intended tension; the previous reset removed a real resource-management beat (mead pickups, when to engage vs disengage). Reverting `continueToNextWave` to not touch `player.hp`.
+
+Index: `[silver-trim]`, `[wave-heal-revert]`.
+
+---
+
 ## 2026-05-11 — `[wave-heal]`
 
 Full heal on every wave transition. Walking into wave 2/3 chipped from wave 1 felt punishing in a way that wasn't carrying the right kind of tension — it just meant the next wave's first mistake was fatal. Mid-wave mead drops still matter; the reset is a between-wave reset, not a between-fight one.
