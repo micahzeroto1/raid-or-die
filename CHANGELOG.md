@@ -23,6 +23,20 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[ai-ranged-scatter]`
+
+### Ranged enemies scatter instead of cluster
+Archers were converging to the same 250px ring (their `preferredDistance`) and clumping along whatever arc their spawn-edge deposited them on. With the prior tight separation radius (~22px), repulsion only kicked in when they were nearly touching — most archers ended up shoulder-to-shoulder on the ring's perimeter.
+
+Three changes:
+- `separationForce` refactored to take a `radius` parameter. Chase keeps `e.r * 1.6` (~22px, just prevents overlap). Ranged passes `e.r * 4` (~56px), so archers feel each other from much further out and fan out laterally.
+- **Per-archer `preferredDistance` ±30%** at spawn — instead of every archer sitting at exactly 250, they spread between 175-325. Creates depth: some archers right on top of the player, others further back.
+- Together: archers form a **scattered ring with depth** instead of a tight perimeter arc.
+
+**Files**: `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[ai-separation-tune]`
 
 ### Herd-effect fix

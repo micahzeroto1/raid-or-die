@@ -35,7 +35,11 @@ export function spawnEnemy(game, type) {
     fireCooldown: rand(2, 4),
     bob: rand(0, 6.28),
     behavior: def.behavior,
-    preferredDistance: def.preferredDistance,
+    // ±30% variance per ranged enemy so archers occupy different ring
+    // distances instead of stacking on the same 250px arc.
+    preferredDistance: def.preferredDistance != null
+      ? def.preferredDistance * (0.7 + Math.random() * 0.6)
+      : undefined,
     fireRange: def.fireRange,
     fireRate: def.fireRate,
     arrowSpeed: def.arrowSpeed,
@@ -71,13 +75,13 @@ export function spawnBoss(game, type) {
 // --- Behavior dispatch (non-boss enemies) -----------------------------------
 
 // Boids-style separation: accumulate a repulsion vector from neighbors
-// within ~1.6× radius. Strength scales with closeness so heavily-stacked
-// enemies push apart strongly while distant ones barely contribute.
-// Tight radius + low weight at the call sites ensures chase still wins —
-// enemies converge on the player, separation only prevents stacking.
-function separationForce(e, enemies) {
+// within the given radius. Strength scales with closeness so tightly-
+// packed enemies push apart strongly while distant ones barely contribute.
+// Chase passes a tight radius (~1.6× e.r) — separation only prevents
+// physical overlap. Ranged passes a much larger radius (~4× e.r) so
+// archers fan out into a scattered ring instead of clumping along an arc.
+function separationForce(e, enemies, radius) {
   let sx = 0, sy = 0;
-  const radius = e.r * 1.6;
   for (const other of enemies) {
     if (other === e) continue;
     const dx = e.x - other.x;
@@ -102,7 +106,8 @@ function updateChaseBehavior(game, e, dt) {
   // re-normalized before applying speed so total movement never exceeds
   // e.speed * slowMult — wave difficulty preserved.
   const slowMult = e.statuses?.frost?.slowMult ?? 1;
-  const sep = separationForce(e, game.enemies);
+  // Chase: tight radius (~1.6× r) — separation just prevents overlap.
+  const sep = separationForce(e, game.enemies, e.r * 1.6);
   const vx = (dx / d) + sep.x * 0.6;
   const vy = (dy / d) + sep.y * 0.6;
   const vmag = Math.hypot(vx, vy);
@@ -124,7 +129,9 @@ function updateRangedBehavior(game, e, dt) {
     let sign = 0;
     if (d > e.preferredDistance + 30) sign = 1;
     else if (d < e.preferredDistance - 30) sign = -1;
-    const sep = separationForce(e, game.enemies);
+    // Ranged: wide separation radius (~4× r) so archers scatter laterally
+    // along the ring instead of clumping in arcs from the same spawn edge.
+    const sep = separationForce(e, game.enemies, e.r * 4);
     const vx = sign * ux + sep.x * 0.6;
     const vy = sign * uy + sep.y * 0.6;
     const vmag = Math.hypot(vx, vy);
