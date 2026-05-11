@@ -23,6 +23,22 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-music-compress]`
+
+### Einherjar March: 191 kbps → 128 kbps stereo
+File was at near-CD quality, overkill for a web prototype.
+
+- 9,051,817 bytes → 6,214,563 bytes (31% reduction).
+- Still stereo so the drum + throat-singing spatial image is preserved.
+- No audible quality difference on phone speakers / typical desktop setups.
+
+### `preload="auto"` → `preload="metadata"`
+Browser now fetches only the audio metadata (duration etc) on page load, defers the actual file fetch until `.play()` is called on the "Begin the Raid" tap. First paint is no longer blocked by the 6 MB music download.
+
+**Files**: `Prototype/Assets/Einherjar March.mp3`, `Prototype/index.html`.
+
+---
+
 ## 2026-05-11 — `[audio-compress]` + `[audio-volume]` (round 3)
 
 ### SFX compressed: stereo 192 kbps → mono 96 kbps
