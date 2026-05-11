@@ -23,6 +23,28 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-compress]` + `[audio-volume]` (round 3)
+
+### SFX compressed: stereo 192 kbps → mono 96 kbps
+Re-encoded all 9 SFX MP3s via `ffmpeg -ac 1 -b:a 96k`. Sizes ~halved across the board:
+- Berserk / Hammer / Rune: 49 KB → 25 KB
+- Most fire sounds + viking damage/dying + throwing knife: 25 KB → 13 KB
+- Enemy impact: 13 KB → 6 KB
+- Total SFX payload: ~288 KB → ~144 KB
+
+No audible quality difference for short SFX. Music untouched (already 64 kbps stereo, kept for music quality).
+
+### Volume bumps (diagnostic)
+While debugging "I don't hear damage/dying on desktop", bumped:
+- damage: 0.10 → 0.5
+- dying: 0.35 → 0.8
+
+User confirmed they could hear on mobile at these levels. Diagnostic `console.log` statements removed.
+
+**Files**: `Prototype/Assets/*.mp3` (re-encoded), `Prototype/js/enemies.js`.
+
+---
+
 ## 2026-05-11 — `[audio-replace]` (round 3) + `[audio-volume]`
 
 ### New sounds matched
