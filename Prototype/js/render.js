@@ -483,6 +483,16 @@ function drawEnemy(ctx, e) {
     ctx.strokeStyle = '#2a2018';
     ctx.lineWidth = 1;
     ctx.stroke();
+    // Red bandana wrapped around forehead — peasant's distinguishing mark
+    ctx.fillStyle = '#a32424';
+    ctx.fillRect(-4, -6, 8, 2);
+    // Tied knot on the side
+    ctx.beginPath();
+    ctx.moveTo(3, -6);
+    ctx.lineTo(6, -5);
+    ctx.lineTo(4, -4);
+    ctx.closePath();
+    ctx.fill();
     // Pitchfork tines
     ctx.strokeStyle = '#a89a78';
     ctx.lineWidth = 1.5;
@@ -528,6 +538,13 @@ function drawEnemy(ctx, e) {
     ctx.beginPath();
     ctx.arc(-e.r + 1, 2, 2, 0, Math.PI * 2);
     ctx.fill();
+    // White cross painted on shield — militia kit emblem
+    ctx.strokeStyle = '#ede2c8';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(-e.r + 1, -2.5); ctx.lineTo(-e.r + 1, 6.5);
+    ctx.moveTo(-e.r - 3, 2);    ctx.lineTo(-e.r + 5, 2);
+    ctx.stroke();
     // Sword on right side
     ctx.strokeStyle = '#b8b8b8';
     ctx.lineWidth = 2;
@@ -553,6 +570,23 @@ function drawEnemy(ctx, e) {
         ctx.fill();
       }
     }
+    // Shoulder pauldrons — steel plates on each shoulder, distinguishing
+    // mark for "heavily armored." Drawn above body, below surcoat/tabard.
+    ctx.fillStyle = flash ? '#ffffff' : '#9ba8b4';
+    ctx.beginPath();
+    ctx.arc(-e.r + 2, -2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(e.r - 2, -2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#15181c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(-e.r + 2, -2, 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(e.r - 2, -2, 4, 0, Math.PI * 2);
+    ctx.stroke();
     // Surcoat / tabard (red with cross)
     ctx.fillStyle = '#7a2020';
     ctx.fillRect(-4, -3, 8, 13);
@@ -616,12 +650,12 @@ function drawEnemy(ctx, e) {
     ctx.beginPath();
     ctx.arc(0, -5, 4, 0, Math.PI * 2);
     ctx.fill();
-    // Hood (dark cloth over top of head)
-    ctx.fillStyle = '#2a1f10';
+    // Hood (forest-green cloth over top of head — archer's signature)
+    ctx.fillStyle = '#3a5a2a';
     ctx.beginPath();
     ctx.arc(0, -5, 4, Math.PI, 0);
     ctx.fill();
-    ctx.strokeStyle = '#1a1208';
+    ctx.strokeStyle = '#1f2e16';
     ctx.lineWidth = 1;
     ctx.stroke();
 

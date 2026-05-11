@@ -23,6 +23,29 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-pickups]` + `[enemy-visual-distinguish]`
+
+### Pickup sounds added
+Two new SFX wired into `pickups.js` collection logic:
+- `hacksilver sound.mp3` — plays on silver coin pickup. Throttled `minInterval: 60` so magnet-burst pickups don't fire a wall of clinks.
+- `mead sound.mp3` — plays on mead flask pickup.
+
+Both compressed to mono 96 kbps (`ffmpeg -ac 1 -b:a 96k`) like the other SFX. ~6.4 KB each.
+
+Volumes: hacksilver 0.18, mead 0.3.
+
+### Enemies visually distinguished
+At small mobile sizes the enemies all read as "round body with stuff on top." Added one strong distinguishing feature per type:
+
+- **Peasant** — red bandana wrapped around the forehead (only enemy with red headwear).
+- **Militia** — white cross painted across the shield (military emblem). Reinforces "soldier with kit."
+- **Knight** — steel pauldrons (shoulder plates) — silhouette is now visibly broader. Reads as "heavily armored."
+- **Archer** — hood changed from dark brown → forest green. Visually decouples archer from peasant's earth-tone tunic.
+
+**Files**: `Prototype/Assets/hacksilver sound.mp3`, `Prototype/Assets/mead sound.mp3`, `Prototype/js/sounds.js`, `Prototype/js/pickups.js`, `Prototype/js/render.js`.
+
+---
+
 ## 2026-05-11 — `[mead-bump]` + `[ai-melee-faster]`
 
 ### Mead Flask drop rate 4% → 6%
