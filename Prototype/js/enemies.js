@@ -388,13 +388,13 @@ export function killEnemy(game, j) {
     value: e.silver,
     bob: rand(0, 6.28)
   });
-  // Mead flask drop (4% chance, non-boss only)
-  if (!e.boss && Math.random() < 0.06) {
+  // Mead flask drop (9% chance, non-boss only)
+  if (!e.boss && Math.random() < 0.09) {
     game.pickups.push({
       type: 'mead_flask',
       x: e.x + rand(-8, 8), y: e.y + rand(-8, 8),
       r: 7,
-      heal: 15,
+      heal: 18,
       bob: rand(0, 6.28)
     });
   }

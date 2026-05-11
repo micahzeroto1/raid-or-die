@@ -23,6 +23,25 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[silver-bump-2]` + `[mead-bump]`
+
+Another econ pass. The first silver bump (2→5 commons, 5→14 knight) was still tight; user wanted more headroom for shop choice, plus more healing availability mid-wave.
+
+Silver (second bump on top of `[silver-bump]`):
+- **Peasant** 5 → **7** (now +250% vs original 2).
+- **Militia** 5 → **7** (+250%).
+- **Archer** 5 → **7** (+250%).
+- **Knight** 14 → **18** (+260% vs original 5).
+
+Mead:
+- **Drop chance** 6% → **9%** (+50%). More frequent flasks during wave.
+- **Heal per flask** 15 → **18** HP (+20%). Each one chips off a meaningful slice of the 120 HP pool.
+- Stale comment fixed (said "4%", actual was 6%).
+
+Index: `[silver-bump-2]`, `[mead-bump]`.
+
+---
+
 ## 2026-05-11 — `[silver-bump]`
 
 User wants 3+ items purchasable after wave 1, with a stronger payout on wave 3. After a first +50% pass felt undertuned, going harder on all common enemies and giving knight (wave-3-only) a bigger drop so wave 3 scales naturally without needing wave-level multipliers.
