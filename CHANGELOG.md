@@ -23,6 +23,14 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[audio-longbow-louder]`
+
+Longbow `fireVolume: 0.35` override (was using default 0.10). Bow release now clearly audible — between Berserker (0.25) and Hammer (0.5) in the loudness hierarchy.
+
+**Files**: `Prototype/js/weapons.js`.
+
+---
+
 ## 2026-05-11 — `[ai-ranged-scatter]`
 
 ### Ranged enemies scatter instead of cluster

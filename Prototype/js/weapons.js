@@ -88,6 +88,7 @@ export const WEAPONS = {
     spins: false,
     fireFlashDuration: 0.1,
     fireSound: 'arrow',
+    fireVolume: 0.35,
     cost: 130
   },
   rune: {
