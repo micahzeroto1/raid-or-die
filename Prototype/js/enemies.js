@@ -27,18 +27,26 @@ export function spawnEnemy(game, type) {
   //  - 20% chance VANGUARD: extra ×1.30 speed (sprints ahead of pack)
   //  - 10% chance ELITE: ×1.50 HP (visibly tankier on inspection)
   // Variants can stack: 1-in-50 fast tank. Boss bypasses this (spawnBoss).
-  let speedMult = 0.75 + Math.random() * 0.50;
+  // Peasants get wider speed variance (±40%) — they're untrained rabble,
+  // not a drilled formation. Other chase types stay at ±25%.
+  const speedSpread = type === 'peasant' ? 0.80 : 0.50;
+  const speedBase = type === 'peasant' ? 0.60 : 0.75;
+  let speedMult = speedBase + Math.random() * speedSpread;
   if (Math.random() < 0.15) speedMult *= 1.30;
   const eliteHpMult = Math.random() < 0.10 ? 1.50 : 1.0;
 
-  // Militia flanking: each spawns into a lane so the mob splits into
-  // converging streams (left flank / right flank / direct) instead of
-  // arriving as one rolling wall. Offset decays inside 80px so melee
-  // still lands. 40/40/20 distribution biases toward flank pressure.
+  // Lateral approach offsets — each enemy aims at a point shifted
+  // perpendicular to the player-vector, so the mob fragments into
+  // distinct streams instead of arriving as one wall. Falloff inside
+  // 80px (in updateChaseBehavior) ensures melee still converges.
+  //   - Militia: strict 40/40/20 lanes (left flank / right flank / direct)
+  //   - Peasant: continuous wobble in [-50, +50] (rabble, no formation)
   let lateralOffset;
   if (type === 'militia') {
     const r = Math.random();
     lateralOffset = r < 0.40 ? -85 : r < 0.80 ? 85 : 0;
+  } else if (type === 'peasant') {
+    lateralOffset = rand(-50, 50);
   }
 
   game.enemies.push({

@@ -23,6 +23,19 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[peasant-rabble]`
+
+Wave 1 follow-up: peasants were reading as one synchronized clump. Two tweaks make them feel like untrained rabble instead of a drilled unit.
+
+- **Speed variance** for peasants widened: ±25% → **±40%** (range 48–112 px/s vs prior 60–100). Some shamble, some sprint. Vanguard 15% bonus still applies on top.
+- **Per-peasant lateral wobble**: each peasant picks `lateralOffset ∈ [-50, +50]` at spawn (continuous, not militia's discrete lanes). Reuses the existing flanking machinery in `updateChaseBehavior`. Each peasant aims at a slightly different point near the player, so the crowd fragments rather than blobbing.
+
+Militia keeps strict ±85 lanes; archers/knights unaffected. No damage / HP / spawn-rate changes — pure visual & positional variance.
+
+Index: `[peasant-rabble]`.
+
+---
+
 ## 2026-05-11 — `[wave2-mob]` + `[abbot-phase2]` + `[silver-trim-militia]`
 
 Wave 2/3 polish pass after live playtest. Three coordinated changes, all on the *behavior* axis (not body count):
