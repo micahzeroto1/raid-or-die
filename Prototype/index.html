@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <title>RAID OR DIE — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +34,8 @@ body {
   color: var(--bone);
   font-family: 'Crimson Text', serif;
   overflow: hidden;
-  height: 100vh;
+  height: 100vh;          /* fallback */
+  height: 100dvh;         /* dynamic viewport — accounts for mobile chrome */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,7 +59,10 @@ body {
      height-derived width (90vh * 1.5) so the frame's height never exceeds
      90vh. CSS picks the smaller, height follows automatically. */
   aspect-ratio: 3 / 2;
-  width: min(95vw, 960px, calc(90vh * 1.5));
+  /* Width clamped by: viewport width, world width, OR height-derived
+     width (using dvh so the frame respects current browser chrome). */
+  width: min(95vw, 960px, calc(95vh * 1.5));
+  width: min(95vw, 960px, calc(95dvh * 1.5));
   background: var(--bg-mid);
   border: 2px solid var(--bronze-dark);
   box-shadow:
@@ -67,6 +74,37 @@ body {
 /* Canvas fills the (correctly-aspect-ratio'd) game-frame. Internal coords
    stay 960x640; browser scales the display. */
 canvas { display: block; width: 100%; height: 100%; }
+
+/* Fullscreen toggle — top-right of game-frame. Hidden via JS on browsers
+   that don't support the Fullscreen API (notably iOS Safari, which only
+   allows fullscreen on video elements). For iOS, use Share → Add to
+   Home Screen for true fullscreen via the apple-mobile-web-app meta. */
+.fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 9;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 13, 0.55);
+  border: 1px solid var(--bronze-dark);
+  border-radius: 4px;
+  color: var(--bone);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(200, 156, 95, 0.2);
+  border-color: var(--bronze);
+}
 
 /* Viewport-centered vignette (replaces the canvas-drawn one so it stays
    correct when the camera pans on mobile). */
@@ -701,6 +739,7 @@ canvas { display: block; width: 100%; height: 100%; }
     </div>
     <div class="game-frame">
     <canvas id="game" width="960" height="640"></canvas>
+    <button class="fullscreen-btn" id="fullscreenBtn" aria-label="Toggle fullscreen">⛶</button>
     <div class="flash" id="flash"></div>
 
     <!-- HUD -->

@@ -192,6 +192,39 @@ function loop(t) {
 const bgMusic = document.getElementById('bgMusic');
 if (bgMusic) bgMusic.volume = 0.4;
 
+// Fullscreen toggle. Works on Chrome/Edge/Firefox/Safari-desktop.
+// iOS Safari has no Fullscreen API for non-video elements — for iOS,
+// the apple-mobile-web-app-capable meta lets users get true fullscreen
+// via "Share -> Add to Home Screen".
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+if (fullscreenBtn) {
+  const docEl = document.documentElement;
+  const fsSupported =
+    docEl.requestFullscreen ||
+    docEl.webkitRequestFullscreen ||
+    docEl.msRequestFullscreen;
+
+  if (!fsSupported) {
+    fullscreenBtn.style.display = 'none';
+  } else {
+    fullscreenBtn.addEventListener('click', () => {
+      const inFs =
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.msFullscreenElement;
+      if (inFs) {
+        (document.exitFullscreen ||
+          document.webkitExitFullscreen ||
+          document.msExitFullscreen).call(document);
+      } else {
+        (docEl.requestFullscreen ||
+          docEl.webkitRequestFullscreen ||
+          docEl.msRequestFullscreen).call(docEl);
+      }
+    });
+  }
+}
+
 function startGame() {
   document.getElementById('menu').classList.add('hidden');
   document.getElementById('gameover').classList.add('hidden');
