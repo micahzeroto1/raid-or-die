@@ -23,6 +23,42 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[silver-bump]`
+
+User wants 3+ items purchasable after wave 1, with a stronger payout on wave 3. After a first +50% pass felt undertuned, going harder on all common enemies and giving knight (wave-3-only) a bigger drop so wave 3 scales naturally without needing wave-level multipliers.
+
+- **Peasant silver** 2 → **5** (+150%). Wave 1 + 2 + 3 baseline.
+- **Militia silver** 2 → **5** (+150%). Wave 2 + 3.
+- **Archer silver** 2 → **5** (+150%). All waves.
+- **Knight silver** 5 → **14** (+180%). Wave 3 only — extra scale-up over the base bump.
+- Abbot silver 40 unchanged (final-wave flourish; no shop after wave 3 anyway).
+
+Expected outcome: a typical wave 1 clear should comfortably afford 3+ items (70–90 silver each). Wave 3 income compounds since knights themselves drop more *and* the base bump applies to everything else they share a wave with.
+
+Index: `[silver-bump]`.
+
+---
+
+## 2026-05-11 — `[damage-revert]`
+
+Wave 2 still too hard after the spawn-ramp softening. User diagnosis: "we walked up their damage too much." Reverting only the damage axis from the recent difficulty pass — keeping all toughness/aggression bumps. Damage spikes single-hit punishment; HP/speed shape fight cadence.
+
+- **Militia damage** 14 → **12** (revert). Wave 2 touch damage back to pre-difficulty-pass value. Player takes ~10 hits before death instead of ~8.
+- **Knight damage** 28 → **22** (revert). Wave 3 touch hits sting but don't catastrophize a single mistake.
+- **Abbot bead damage** 20 → **15** (revert). The 5-bead spread keeps its barrage feel; the per-bead chip is gentler.
+
+**Untouched on purpose** (toughness/aggression axis):
+- Militia hp 75, speed 100 — they're still tougher and faster than v1.
+- Knight hp 180, speed 75 — still a charging brick.
+- Abbot hp 3600 — boss still doubled.
+- Bead barrage cadence: 5 beads, 0.15 rad step, 1.3s cooldown.
+- Variants: vanguard 15%, elite 10%.
+- Spawn ramps: wave 2 0.5→0.42, wave 3 0.55→0.40.
+
+Next dial if still too hard: toughness (HP/speed), not damage. Index: `[damage-revert]`.
+
+---
+
 ## 2026-05-11 — `[wave2-ease]`
 
 Wave 2 was too hard after stacking militia stat bumps + variance widen + vanguard + elite + spawn ramp. Surgical dial-back, not full revert:

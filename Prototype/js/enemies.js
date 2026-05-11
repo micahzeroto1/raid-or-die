@@ -189,7 +189,7 @@ function updateBoss(game, e, dt) {
         x: e.x, y: e.y,
         vx: Math.cos(angle + j * 0.15) * 220,
         vy: Math.sin(angle + j * 0.15) * 220,
-        r: 8, damage: 20, life: 3, rotation: 0,
+        r: 8, damage: 15, life: 3, rotation: 0,
         type: 'prayer_bead'
       });
     }
