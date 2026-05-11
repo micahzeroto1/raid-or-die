@@ -653,6 +653,14 @@ function drawEnemy(ctx, e) {
     ctx.stroke();
   }
 
+  // Frost overlay (translucent blue circle, distinct from white hit flash)
+  if (e.statuses && e.statuses.frost && e.statuses.frost.timer > 0) {
+    ctx.fillStyle = 'rgba(158, 212, 238, 0.35)';
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // HP bar if damaged (non-boss)
   if (!e.boss && e.hp < e.maxHp) {
     const bw = e.r * 2, bh = 3;
@@ -666,8 +674,12 @@ function drawEnemy(ctx, e) {
 }
 
 function drawProjectile(ctx, p) {
-  if (p.shape === 'arrow') drawPlayerArrow(ctx, p);
-  else drawBladeProjectile(ctx, p);
+  switch (p.shape) {
+    case 'arrow':  drawPlayerArrow(ctx, p); break;
+    case 'rune':   drawRune(ctx, p); break;
+    case 'hammer': drawMjolnir(ctx, p); break;
+    default:       drawBladeProjectile(ctx, p);
+  }
 }
 
 function drawBladeProjectile(ctx, p) {
@@ -689,6 +701,75 @@ function drawBladeProjectile(ctx, p) {
   ctx.fill();
   ctx.strokeStyle = p.edgeColor || '#8a6938';
   ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRune(ctx, p) {
+  const s = p.r;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // Outer ice glow (drawn before rotation so halo stays still)
+  ctx.fillStyle = 'rgba(126, 192, 232, 0.32)';
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 1.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(180, 220, 240, 0.25)';
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  // Glyph: six-armed star (three crossed line segments through center)
+  ctx.rotate(p.rotation);
+  ctx.strokeStyle = p.color || '#7ec0e8';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * -s, Math.sin(a) * -s);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+    ctx.stroke();
+  }
+  // Bright cyan-white core
+  ctx.fillStyle = '#e8f4fc';
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineCap = 'butt';
+  ctx.restore();
+}
+
+function drawMjolnir(ctx, p) {
+  const s = p.r;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // Warm bronze glow halo
+  ctx.fillStyle = 'rgba(229, 184, 99, 0.3)';
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 1.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Tumble
+  ctx.rotate(p.rotation);
+  // Wooden handle (extends below the head)
+  ctx.fillStyle = '#3a2a1a';
+  ctx.fillRect(-s * 0.2, -s * 0.2, s * 0.4, s * 1.5);
+  // Hammer head (trapezoid, bronze)
+  ctx.fillStyle = p.color || '#c89c5f';
+  ctx.beginPath();
+  ctx.moveTo(-s * 1.1, -s * 0.7);
+  ctx.lineTo(s * 1.1, -s * 0.7);
+  ctx.lineTo(s * 0.9, -s * 0.2);
+  ctx.lineTo(-s * 0.9, -s * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = p.edgeColor || '#7a6238';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Gold highlight stripe
+  ctx.strokeStyle = 'rgba(247, 200, 74, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.8, -s * 0.55); ctx.lineTo(s * 0.8, -s * 0.55);
   ctx.stroke();
   ctx.restore();
 }

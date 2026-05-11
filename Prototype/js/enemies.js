@@ -1,6 +1,7 @@
 import { rand, randInt, dist, clamp } from './utils.js';
 import { ENEMY_DEFS, GATE_X, GATE_Y, MONASTERY_HEIGHT } from './config.js';
 import { flashScreen, showGameOver } from './ui.js';
+import { emit } from './events.js';
 
 export function spawnEnemy(game, type) {
   const def = ENEMY_DEFS[type];
@@ -71,8 +72,9 @@ function updateChaseBehavior(game, e, dt) {
   const dx = player.x - e.x, dy = player.y - e.y;
   const d = Math.hypot(dx, dy);
   if (d > 0.1) {
-    e.x += (dx / d) * e.speed * dt;
-    e.y += (dy / d) * e.speed * dt;
+    const slowMult = e.statuses?.frost?.slowMult ?? 1;
+    e.x += (dx / d) * e.speed * slowMult * dt;
+    e.y += (dy / d) * e.speed * slowMult * dt;
   }
 }
 
@@ -82,14 +84,15 @@ function updateRangedBehavior(game, e, dt) {
   const d = Math.hypot(dx, dy);
   if (d > 0.1) {
     const ux = dx / d, uy = dy / d;
+    const slowMult = e.statuses?.frost?.slowMult ?? 1;
     if (d > e.preferredDistance + 30) {
       // Too far: close in
-      e.x += ux * e.speed * dt;
-      e.y += uy * e.speed * dt;
+      e.x += ux * e.speed * slowMult * dt;
+      e.y += uy * e.speed * slowMult * dt;
     } else if (d < e.preferredDistance - 30) {
       // Too close: back away
-      e.x -= ux * e.speed * dt;
-      e.y -= uy * e.speed * dt;
+      e.x -= ux * e.speed * slowMult * dt;
+      e.y -= uy * e.speed * slowMult * dt;
     }
     // Else: hold position
   }
@@ -118,12 +121,13 @@ const BEHAVIORS = {
 
 function updateBoss(game, e, dt) {
   const player = game.player;
-  // Movement: chase
+  // Movement: chase (frost-slowed if applicable)
   const dx = player.x - e.x, dy = player.y - e.y;
   const d = Math.hypot(dx, dy);
   if (d > 0.1) {
-    e.x += (dx / d) * e.speed * dt;
-    e.y += (dy / d) * e.speed * dt;
+    const slowMult = e.statuses?.frost?.slowMult ?? 1;
+    e.x += (dx / d) * e.speed * slowMult * dt;
+    e.y += (dy / d) * e.speed * slowMult * dt;
   }
   // Fire 3-bead spread
   e.fireCooldown -= dt;
@@ -151,16 +155,34 @@ function applyTouchDamage(game, e) {
   const player = game.player;
   const d = Math.hypot(player.x - e.x, player.y - e.y);
   if (d < e.r + player.r && player.invuln <= 0) {
-    player.hp -= e.damage;
-    player.invuln = 0.5;
-    player.rage = Math.min(player.maxRage, player.rage + e.damage * 1.2);
-    game.shake = Math.max(game.shake, 8);
-    flashScreen();
-    if (player.hp <= 0) {
-      player.hp = 0;
-      game.state = 'gameover';
-      setTimeout(() => showGameOver(game), 600);
-    }
+    applyPlayerDamage(game, e.damage, {
+      source: 'touch',
+      invulnDuration: 0.5,
+      shake: 8,
+      rageMultiplier: 1.2
+    });
+  }
+}
+
+// Single hook for enemy → player damage. Handles hp, invuln, rage, screen
+// flash, game-over transition, and fires the onTakeDamage event.
+export function applyPlayerDamage(game, damage, opts = {}) {
+  const player = game.player;
+  if (player.invuln > 0) return;
+  // Armor reduces incoming damage by a flat amount, floored at 1 so a
+  // sufficiently-armored player still takes a chip rather than going
+  // invincible.
+  const effectiveDamage = Math.max(1, damage - (player.armor ?? 0));
+  player.hp -= effectiveDamage;
+  player.invuln = opts.invulnDuration ?? 0.5;
+  player.rage = Math.min(player.maxRage, player.rage + effectiveDamage * (opts.rageMultiplier ?? 1.2));
+  game.shake = Math.max(game.shake, opts.shake ?? 8);
+  flashScreen();
+  emit(game, 'onTakeDamage', { source: opts.source, damage: effectiveDamage });
+  if (player.hp <= 0) {
+    player.hp = 0;
+    game.state = 'gameover';
+    setTimeout(() => showGameOver(game), 600);
   }
 }
 
@@ -169,6 +191,7 @@ export function updateEnemies(game, dt) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     if (e.hitFlash > 0) e.hitFlash -= dt;
+    if (e.statuses) tickEnemyStatuses(e, dt);
 
     if (e.boss) {
       updateBoss(game, e, dt);
@@ -193,23 +216,54 @@ export function updateEnemyProjectiles(game, dt) {
       continue;
     }
     if (dist(p, player) < p.r + player.r && player.invuln <= 0) {
-      player.hp -= p.damage;
-      player.invuln = 0.3;
-      player.rage = Math.min(player.maxRage, player.rage + p.damage);
-      game.shake = Math.max(game.shake, 6);
-      flashScreen();
+      const dmg = p.damage;
       enemyProjectiles.splice(i, 1);
-      if (player.hp <= 0) {
-        player.hp = 0;
-        game.state = 'gameover';
-        setTimeout(() => showGameOver(game), 600);
-      }
+      applyPlayerDamage(game, dmg, {
+        source: 'projectile',
+        invulnDuration: 0.3,
+        shake: 6,
+        rageMultiplier: 1.0
+      });
     }
   }
 }
 
+// Generic status helpers — extensible to burn/shock/poison without refactor.
+// enemy.statuses is a dict keyed by status type: { frost: { timer, slowMult }, ... }
+//
+// Signature takes `game` so per-player bonuses (frostDurationBonus,
+// frostStrengthBonus, ...) can be applied uniformly to every status source.
+export function applyStatus(game, enemy, type, params) {
+  if (!enemy.statuses) enemy.statuses = {};
+  const effective = computeStatusParams(game.player, type, params);
+  enemy.statuses[type] = { ...effective };
+}
+
+// Apply per-player bonuses to status params at apply-time. Lives here so
+// items don't need to know about per-status formulas — they just write
+// to player.frostDurationBonus / .frostStrengthBonus / etc.
+function computeStatusParams(player, type, baseParams) {
+  if (type === 'frost') {
+    const baseSlowAmount = 1 - (baseParams.slowMult ?? 0.6);
+    const totalSlowAmount = Math.min(0.95, baseSlowAmount + (player.frostStrengthBonus ?? 0));
+    return {
+      timer: (baseParams.timer ?? 0) + (player.frostDurationBonus ?? 0),
+      slowMult: 1 - totalSlowAmount
+    };
+  }
+  return baseParams;
+}
+
+function tickEnemyStatuses(enemy, dt) {
+  for (const key in enemy.statuses) {
+    const s = enemy.statuses[key];
+    s.timer -= dt;
+    if (s.timer <= 0) delete enemy.statuses[key];
+  }
+}
+
 // Single hook for player → enemy damage. Handles hp, hit flash, impact
-// particles, damage-number popup, rage gain, and lethal kill dispatch.
+// particles, damage-number popup, rage gain, status effects, kill dispatch.
 export function applyDamage(game, enemy, j, damage, opts = {}) {
   enemy.hp -= damage;
   enemy.hitFlash = 0.08;
@@ -241,6 +295,14 @@ export function applyDamage(game, enemy, j, damage, opts = {}) {
   // Rage
   const rageGain = opts.rageGain ?? 1;
   game.player.rage = Math.min(game.player.maxRage, game.player.rage + rageGain);
+
+  // Status effect (frost, future burn/shock/poison)
+  if (opts.statusEffect) {
+    applyStatus(game, enemy, opts.statusEffect.type, opts.statusEffect.params);
+  }
+
+  // Notify item / status listeners
+  emit(game, 'onHit', { enemy, damage, color: opts.color });
 
   // Lethal hit
   if (enemy.hp <= 0) killEnemy(game, j);
@@ -281,4 +343,6 @@ export function killEnemy(game, j) {
   game.killCount++;
   game.totalKills++;
   game.enemies.splice(j, 1);
+  // Notify item listeners (after splice so listener sees post-kill state)
+  emit(game, 'onKill', { enemy: e });
 }

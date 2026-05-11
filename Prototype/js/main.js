@@ -1,4 +1,4 @@
-import { createPlayer, updatePlayer, tryBerserker } from './player.js';
+import { createPlayer, updatePlayer, tryBerserker, tickStackDecay } from './player.js';
 import { updateAutoFire, updatePlayerProjectiles } from './weapons.js';
 import { updateEnemies, updateEnemyProjectiles } from './enemies.js';
 import { startWave, updateSpawning, updateWaveTimer, continueToNextWave } from './waves.js';
@@ -6,6 +6,7 @@ import { updateParticles } from './particles.js';
 import { updatePickups } from './pickups.js';
 import { updateHUD } from './ui.js';
 import { render } from './render.js';
+import { initEventHandlers, emit, tickTickHandlers } from './events.js';
 
 // ============================================================================
 // RAID OR DIE - Prototype
@@ -29,6 +30,7 @@ const game = {
   shake: 0, lastTime: 0, bossSpawned: false,
   keys: {}
 };
+initEventHandlers(game);
 
 // --- Input ---
 window.addEventListener('keydown', e => {
@@ -52,6 +54,8 @@ function newGame() {
   game.totalKills = 0;
   game.totalSilver = 0;
   game.gameTime = 0;
+  // Reset the event hub for a fresh run (items from prior runs go away)
+  initEventHandlers(game);
   startWave(game);
 }
 
@@ -73,7 +77,25 @@ function update(dt) {
   updateParticles(game, dt);
   updatePickups(game, dt);
 
+  // Item-system ticks: on_tick handlers, stack-decay timers, low-HP crossing
+  tickTickHandlers(game, dt);
+  tickStackDecay(game, dt);
+  checkLowHpCrossing(game);
+
   game.shake *= 0.85;
+}
+
+// One-shot onLowHp event with hysteresis (enter < 30%, leave >= 40%) to
+// prevent flapping near the threshold.
+function checkLowHpCrossing(game) {
+  const player = game.player;
+  const ratio = player.hp / player.maxHp;
+  if (!player.lowHpFlag && ratio < 0.3) {
+    player.lowHpFlag = true;
+    emit(game, 'onLowHp', { ratio });
+  } else if (player.lowHpFlag && ratio >= 0.4) {
+    player.lowHpFlag = false;
+  }
 }
 
 // ============================================================================

@@ -290,6 +290,73 @@ canvas { display: block; width: 100%; height: 100%; }
   animation: glow 0.8s infinite;
 }
 
+.armor-row {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 2px 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.armor-row .label {
+  color: var(--bone-dim);
+}
+
+.armor-row .value {
+  color: var(--rune-blue);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.armor-row.hidden {
+  display: none;
+}
+
+/* Stack row — shows active player stacks (Berserker, etc) with per-stack
+   color via the --stack-color CSS variable set inline per entry. */
+.stack-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  transition: opacity 0.2s;
+}
+
+.stack-row.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stack-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stack-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--stack-color, var(--bone));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.stack-decay-bar {
+  height: 4px;
+  background: var(--bg-dark);
+  border: 1px solid var(--bronze-dark);
+  overflow: hidden;
+}
+
+.stack-decay-fill {
+  height: 100%;
+  background: var(--stack-color, var(--bronze));
+  transition: width 0.1s linear;
+}
+
 @keyframes glow {
   0%, 100% { text-shadow: 0 0 8px var(--gold); }
   50% { text-shadow: 0 0 16px var(--gold), 0 0 4px var(--bone); }
@@ -396,6 +463,20 @@ canvas { display: block; width: 100%; height: 100%; }
   color: var(--gold);
   letter-spacing: 0.1em;
 }
+
+/* Rarity treatment — border + cost text. Disabled state overrides cost via
+   later source order, so unaffordable cards still show blood-red cost. */
+.shop-card.rarity-common     { border-color: var(--bronze-dark); }
+.shop-card.rarity-uncommon   { border-color: #5a9c5a; border-width: 1.5px; }
+.shop-card.rarity-rare       { border-color: var(--rune-blue); border-width: 1.5px; }
+.shop-card.rarity-legendary  { border-color: var(--gold); border-width: 1.5px; }
+
+.shop-card.rarity-uncommon  .cost { color: #7fc47f; }
+.shop-card.rarity-rare      .cost { color: #6fb0d4; }
+.shop-card.rarity-legendary .cost { color: var(--gold); }
+
+/* Disabled state always wins on cost color regardless of rarity. */
+.shop-card.disabled .cost { color: var(--blood); }
 
 .btn.shop-reweave {
   margin-top: 16px;
@@ -510,6 +591,10 @@ canvas { display: block; width: 100%; height: 100%; }
             <span id="hpText">100 / 100</span>
           </div>
         </div>
+        <div class="armor-row hidden" id="armorRow">
+          <span class="label">ARMOR</span>
+          <span class="value" id="armorValue">0</span>
+        </div>
         <div class="bar">
           <div class="bar-fill rage" id="rageFill" style="width:0%"></div>
           <div class="bar-label">
@@ -517,6 +602,7 @@ canvas { display: block; width: 100%; height: 100%; }
             <span id="rageText">0 / 100</span>
           </div>
         </div>
+        <div class="stack-row hidden" id="stackRow"></div>
       </div>
       <div class="hud-bottom-right">
         <div class="silver">

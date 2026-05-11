@@ -57,6 +57,7 @@ export function endWave(game) {
   }
   game.pickups = [];
   game.enemyProjectiles = [];
+  game.projectiles = [];
   setTimeout(() => showShop(game), 300);
 }
 

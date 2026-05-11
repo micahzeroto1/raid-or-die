@@ -1,6 +1,31 @@
-import { SHOP_ITEMS } from './items.js';
+import { SHOP_ITEMS, applyItemEffects } from './items.js';
 import { WEAPONS } from './weapons.js';
 import { choice } from './utils.js';
+
+const RARITY_WEIGHTS = { common: 50, uncommon: 30, rare: 15, legendary: 5 };
+
+// Lookup map for HUD stack rendering. Add one entry per new stack type;
+// no other code changes needed. CSS picks up the color via --stack-color.
+const STACK_DISPLAY_CONFIG = {
+  berserker: { label: 'BERSERKER', color: '#d44b1f' }
+};
+
+// Weighted item selection with replacement (per spec: duplicates allowed
+// across a single shop visit; the same item can appear in two cards if the
+// roll lands that way).
+function weightedItemPicks(pool, n) {
+  const picks = [];
+  if (pool.length === 0 || n <= 0) return picks;
+  const totalWeight = pool.reduce((s, it) => s + (RARITY_WEIGHTS[it.rarity] ?? 50), 0);
+  for (let i = 0; i < n; i++) {
+    let r = Math.random() * totalWeight;
+    for (const it of pool) {
+      r -= RARITY_WEIGHTS[it.rarity] ?? 50;
+      if (r <= 0) { picks.push(it); break; }
+    }
+  }
+  return picks;
+}
 
 export function updateHUD(game) {
   const player = game.player;
@@ -15,6 +40,43 @@ export function updateHUD(game) {
   document.getElementById('silverNum').textContent = game.totalSilver;
   const shopSilver = document.getElementById('shopSilver');
   if (shopSilver) shopSilver.textContent = game.totalSilver;
+
+  // Armor row — appears only when armor > 0 to avoid clutter at baseline
+  const armorRow = document.getElementById('armorRow');
+  if (armorRow) {
+    if ((player.armor ?? 0) > 0) {
+      armorRow.classList.remove('hidden');
+      document.getElementById('armorValue').textContent = player.armor;
+    } else {
+      armorRow.classList.add('hidden');
+    }
+  }
+
+  // Stack row — renders one entry per active stack (count > 0) with a
+  // label + decay bar. Permanent stacks render full bar (presence indicator).
+  const stackRow = document.getElementById('stackRow');
+  if (stackRow && player.stacks) {
+    stackRow.innerHTML = '';
+    let anyVisible = false;
+    for (const stackName in player.stacks) {
+      const stk = player.stacks[stackName];
+      const cfg = STACK_DISPLAY_CONFIG[stackName];
+      if (!cfg || stk.count <= 0) continue;
+      anyVisible = true;
+      const decayPct = stk.decayMode === 'timer' && stk.decayDuration > 0
+        ? Math.max(0, Math.min(1, stk.decayTimer / stk.decayDuration))
+        : 1;
+      const entry = document.createElement('div');
+      entry.className = 'stack-entry';
+      entry.style.setProperty('--stack-color', cfg.color);
+      entry.innerHTML = `
+        <div class="stack-label">${cfg.label} &times;${stk.count}</div>
+        <div class="stack-decay-bar"><div class="stack-decay-fill" style="width:${decayPct * 100}%"></div></div>
+      `;
+      stackRow.appendChild(entry);
+    }
+    stackRow.classList.toggle('hidden', !anyVisible);
+  }
   const rl = document.getElementById('rageLabel');
   if (player.berserker > 0) {
     rl.textContent = `BERSERKR ${player.berserker.toFixed(1)}s`;
@@ -70,7 +132,7 @@ function renderShopOffers(game) {
   const itemCount = 4 - weaponCount;
 
   const weaponPicks = [...availableWeapons].sort(() => Math.random() - 0.5).slice(0, weaponCount);
-  const itemPicks = [...SHOP_ITEMS].sort(() => Math.random() - 0.5).slice(0, itemCount);
+  const itemPicks = weightedItemPicks(SHOP_ITEMS, itemCount);
 
   weaponPicks.forEach(w => addWeaponCard(grid, game, w));
   itemPicks.forEach(u => addItemCard(grid, game, u));
@@ -118,16 +180,17 @@ function addWeaponCard(grid, game, w) {
 
 function addItemCard(grid, game, u) {
   const card = document.createElement('div');
-  card.className = 'shop-card' + (game.totalSilver < u.cost ? ' disabled' : '');
+  const rarityClass = u.rarity ? ` rarity-${u.rarity}` : '';
+  card.className = 'shop-card' + rarityClass + (game.totalSilver < u.cost ? ' disabled' : '');
   card.innerHTML = `
     <div class="name">${u.name}</div>
-    <div class="effect">${u.effect}</div>
+    <div class="effect">${u.description}</div>
     <div class="cost">${u.cost} hacksilver</div>
   `;
   card.onclick = () => {
     if (game.totalSilver < u.cost) return;
     game.totalSilver -= u.cost;
-    u.apply(game.player);
+    applyItemEffects(game, u);
     card.style.opacity = '0.4';
     card.style.pointerEvents = 'none';
     refreshShopDisabled(game);

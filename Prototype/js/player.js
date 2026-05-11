@@ -1,6 +1,54 @@
 import { clamp, rand } from './utils.js';
 import { MONASTERY_HEIGHT } from './config.js';
 import { flashScreen } from './ui.js';
+import { recomputePerStackModifiers } from './events.js';
+
+// --- Stack helpers ---------------------------------------------------------
+
+// Register a named stack with its decay rules. Called once per item that
+// uses gain_stack. Safe to call multiple times — the existing stack keeps
+// its count if already registered.
+export function registerStack(player, name, opts) {
+  if (player.stacks[name]) return;
+  player.stacks[name] = {
+    count: 0,
+    max: opts.max ?? Infinity,
+    decayMode: opts.decayMode ?? 'permanent',
+    decayDuration: opts.decayDuration ?? 0,
+    decayTimer: 0,
+    resetOn: opts.resetOn ?? null
+  };
+}
+
+export function gainStack(game, name, amount = 1) {
+  const player = game.player;
+  const stk = player.stacks[name];
+  if (!stk) return;
+  stk.count = Math.min(stk.max, stk.count + amount);
+  if (stk.decayMode === 'timer') stk.decayTimer = stk.decayDuration;
+  recomputePerStackModifiers(game, name);
+}
+
+// Tick timer-mode stacks; on reaching zero, count resets to 0 and
+// per-stack-modifier contributions are reverted via delta math.
+export function tickStackDecay(game, dt) {
+  for (const name in game.player.stacks) {
+    const stk = game.player.stacks[name];
+    if (stk.decayMode !== 'timer' || stk.count === 0) continue;
+    stk.decayTimer -= dt;
+    if (stk.decayTimer <= 0) {
+      stk.count = 0;
+      recomputePerStackModifiers(game, name);
+    }
+  }
+}
+
+export function resetStack(game, name) {
+  const stk = game.player.stacks[name];
+  if (!stk || stk.count === 0) return;
+  stk.count = 0;
+  recomputePerStackModifiers(game, name);
+}
 
 export function createPlayer(W, H) {
   return {
@@ -20,6 +68,12 @@ export function createPlayer(W, H) {
       null,
       null
     ],
+    stacks: {},        // <name>: { count, max, decayMode, decayDuration, decayTimer, resetOn }
+    lowHpFlag: false,  // hysteresis flag for the onLowHp crossing event
+    armor: 0,                  // flat damage reduction (Shield Wall archetype)
+    frostDurationBonus: 0,     // additive seconds to every frost application
+    frostStrengthBonus: 0,     // additive slow strength (capped at 0.95 total)
+    weaponTagBoosts: {},       // <tag>: { damageBonus, fireRateMult } scope overlays
     upgrades: { hp: 0, dmg: 0, spd: 0, rate: 0 }
   };
 }
