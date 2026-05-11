@@ -103,22 +103,30 @@ if (berserkBtn) {
   berserkBtn.addEventListener('click', fire);
 }
 
-// Camera follows player via CSS transform on the canvas. On desktop the
-// canvas matches game-frame size so the math collapses to (0, 0). On
-// mobile the canvas is larger than game-frame and pans to keep player
-// roughly centered, clamped at world bounds.
-function updateCameraScroll() {
-  if (!gameFrame) return;
+// Letterbox-fit: scale the canvas display to fit the game-frame while
+// preserving the world aspect (960/640 = 1.5). Whole world is always
+// visible — better for a survivor game than camera-pan which can hide
+// incoming threats. Canvas internal coords stay 960x640 so game logic
+// is unchanged; only the CSS display size changes per viewport.
+function resizeCanvas() {
+  if (!gameFrame || !canvas) return;
   const frameW = gameFrame.clientWidth;
   const frameH = gameFrame.clientHeight;
-  const maxCamX = Math.max(0, W - frameW);
-  const maxCamY = Math.max(0, H - frameH);
-  let camX = game.player.x - frameW / 2;
-  let camY = game.player.y - frameH / 2;
-  if (camX < 0) camX = 0; else if (camX > maxCamX) camX = maxCamX;
-  if (camY < 0) camY = 0; else if (camY > maxCamY) camY = maxCamY;
-  canvas.style.transform = `translate(${-camX}px, ${-camY}px)`;
+  const worldAspect = W / H;
+  let dispW, dispH;
+  if (frameW / frameH >= worldAspect) {
+    dispH = frameH;
+    dispW = frameH * worldAspect;
+  } else {
+    dispW = frameW;
+    dispH = frameW / worldAspect;
+  }
+  canvas.style.width = dispW + 'px';
+  canvas.style.height = dispH + 'px';
 }
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+resizeCanvas();
 
 function updateBerserkBtnState() {
   if (!berserkBtn) return;
@@ -197,7 +205,6 @@ function loop(t) {
   if (game.state === 'playing' || game.state === 'shop' || game.state === 'gameover' || game.state === 'victory') {
     updateHUD(game);
   }
-  updateCameraScroll();
   updateBerserkBtnState();
   requestAnimationFrame(loop);
 }

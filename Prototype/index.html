@@ -60,16 +60,16 @@ body {
   overflow: hidden;
 }
 
-/* Canvas is fixed at the world's physical size; on devices smaller than
-   960x640 the canvas overflows the game-frame and JS pans it via
-   transform to follow the player. */
+/* Canvas is letterbox-fit inside the game-frame: JS sizes the display
+   to preserve the 1.5:1 world aspect, centered within the frame. The
+   internal 960x640 canvas coords stay unchanged so all world logic is
+   unaffected — only the display size changes per viewport. */
 canvas {
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 960px;
-  height: 640px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* Viewport-centered vignette (replaces the canvas-drawn one so it stays
