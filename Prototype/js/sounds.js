@@ -1,11 +1,12 @@
-// Lightweight sound effects pool. Preloads each clip once; play creates
-// a cloned audio node so playbacks can overlap (e.g. multiple impacts
-// landing in the same frame).
+// One-shot SFX helper. Earlier version used a preload + cloneNode pool,
+// but cloned audio elements don't reliably load their media on mobile —
+// many .play() calls silently rejected. Fresh `new Audio()` per call is
+// simpler and the browser HTTP cache handles repeated loads.
 //
-// Browser autoplay note: like the bg music, these can only play after
-// a user gesture. Since combat sounds fire mid-gameplay (which started
-// after the "Begin the Raid" click), they're always inside the gesture
-// activation period and work fine.
+// Browser autoplay note: like the bg music, sounds only play after a user
+// gesture. Since combat sounds fire mid-gameplay (started after the
+// "Begin the Raid" tap), they're always inside the gesture activation
+// period and work.
 
 const SOUND_PATHS = {
   axe:     'Assets/axe%20sound.mp3',
@@ -17,18 +18,11 @@ const SOUND_PATHS = {
   berserk: 'Assets/Berserk%20sound.mp3'
 };
 
-const SOUNDS = {};
-for (const key in SOUND_PATHS) {
-  const a = new Audio(SOUND_PATHS[key]);
-  a.preload = 'auto';
-  SOUNDS[key] = a;
-}
-
-const lastPlayedAt = {}; // ms timestamp per sound name, for throttling
+const lastPlayedAt = {};
 
 export function playSound(name, opts = {}) {
-  const proto = SOUNDS[name];
-  if (!proto) return;
+  const path = SOUND_PATHS[name];
+  if (!path) return;
 
   const minInterval = opts.minInterval ?? 0;
   if (minInterval > 0) {
@@ -37,7 +31,10 @@ export function playSound(name, opts = {}) {
     lastPlayedAt[name] = now;
   }
 
-  const instance = proto.cloneNode();
-  instance.volume = opts.volume ?? 1.0;
-  instance.play().catch(() => {});
+  const audio = new Audio(path);
+  audio.volume = opts.volume ?? 1.0;
+  audio.play().catch(err => {
+    // Log so failures surface (autoplay block, format issue, etc).
+    console.warn('[sound]', name, err && err.name, err && err.message);
+  });
 }
