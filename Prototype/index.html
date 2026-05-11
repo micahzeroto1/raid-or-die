@@ -538,27 +538,58 @@ canvas { display: block; width: 100%; height: 100%; }
 .flash.gold { background: var(--gold); }
 .flash.green { background: #5aa05a; }
 
-/* Touch controls — hidden on desktop with mouse/trackpad. Shown only on
-   coarse-pointer (phone / tablet / touchscreen-only). */
-.touch-controls {
-  display: none;
+/* Mobile play layout — joystick + Berserk live alongside the game-frame
+   (not overlaid). Grid template areas change per orientation. Desktop
+   hides the controls entirely; the frame sits centered. */
+.play-layout {
+  display: grid;
+  grid-template-areas: "frame";
+  align-items: center;
+  justify-items: center;
+  gap: 16px;
 }
 
-@media (hover: none), (pointer: coarse) {
-  .touch-controls { display: block; }
+#touchJoystick { grid-area: joy; display: none; }
+.game-frame    { grid-area: frame; }
+#berserkBtn    { grid-area: berserk; display: none; }
+
+/* Touch device, landscape: joystick LEFT, frame CENTER, Berserk RIGHT */
+@media (hover: none) and (orientation: landscape),
+       (pointer: coarse) and (orientation: landscape) {
+  .play-layout {
+    grid-template-areas: "joy frame berserk";
+    grid-template-columns: auto auto auto;
+  }
+  #touchJoystick, #berserkBtn {
+    display: block;
+    align-self: end;
+  }
+}
+
+/* Touch device, portrait: frame on top spanning both cols, controls
+   side-by-side in a row beneath it */
+@media (hover: none) and (orientation: portrait),
+       (pointer: coarse) and (orientation: portrait) {
+  .play-layout {
+    grid-template-areas:
+      "frame frame"
+      "joy   berserk";
+    grid-template-columns: 1fr 1fr;
+  }
+  #touchJoystick, #berserkBtn {
+    display: block;
+    justify-self: center;
+  }
 }
 
 .touch-joystick {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
+  position: relative;  /* so the thumb's absolute positioning is relative to base */
   width: 110px;
   height: 110px;
   border: 2px solid var(--bronze-dark);
   border-radius: 50%;
   background: rgba(10, 10, 13, 0.5);
   touch-action: none;
-  z-index: 8;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -579,9 +610,6 @@ canvas { display: block; width: 100%; height: 100%; }
 }
 
 .berserk-btn {
-  position: absolute;
-  bottom: 28px;
-  right: 28px;
   width: 88px;
   height: 88px;
   border-radius: 50%;
@@ -593,7 +621,6 @@ canvas { display: block; width: 100%; height: 100%; }
   font-weight: 700;
   letter-spacing: 0.2em;
   touch-action: manipulation;
-  z-index: 8;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -668,7 +695,11 @@ canvas { display: block; width: 100%; height: 100%; }
 </head>
 <body>
 <div id="root">
-  <div class="game-frame">
+  <div class="play-layout">
+    <div class="touch-joystick" id="touchJoystick">
+      <div class="touch-joystick-thumb" id="touchJoystickThumb"></div>
+    </div>
+    <div class="game-frame">
     <canvas id="game" width="960" height="640"></canvas>
     <div class="flash" id="flash"></div>
 
@@ -759,13 +790,8 @@ canvas { display: block; width: 100%; height: 100%; }
       <button class="btn primary" id="victoryBtn">Raid Again</button>
     </div>
 
-    <!-- Touch controls (only shown on coarse-pointer devices) -->
-    <div class="touch-controls">
-      <div class="touch-joystick" id="touchJoystick">
-        <div class="touch-joystick-thumb" id="touchJoystickThumb"></div>
-      </div>
-      <button class="berserk-btn" id="berserkBtn">RAGE</button>
     </div>
+    <button class="berserk-btn" id="berserkBtn">RAGE</button>
   </div>
 </div>
 
