@@ -185,10 +185,12 @@ export function applyPlayerDamage(game, damage, opts = {}) {
     game.state = 'gameover';
     // Death plays its own sound; skip the per-hit damage sound on the
     // fatal hit so we don't stack "damage" + "dying" on the same frame.
-    playSound('dying', { volume: 0.35 });
+    console.log('[hit] dying triggered');
+    playSound('dying', { volume: 0.8 });
     setTimeout(() => showGameOver(game), 600);
   } else {
-    playSound('damage', { volume: 0.10 });
+    console.log('[hit] damage triggered, hp=', player.hp);
+    playSound('damage', { volume: 0.5 });
   }
 }
 
