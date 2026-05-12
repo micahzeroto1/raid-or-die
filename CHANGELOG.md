@@ -23,6 +23,22 @@ Tag conventions:
 
 ---
 
+## 2026-05-12 — `[item-balance]`
+
+Playtest nerfs on three items that compounded the wave-3 walk: Tortoise Shell stacking approached invincibility, Battle Frenzy peaked at +10 damage on kill streak (always-on global, not weapon-tagged), and Whetstone's flat +4 was the always-on baseline that multiplied every other damage modifier. Surgical value tweaks only — no architectural change. Per-archetype DR from `[archetype-dr]` still applies on top.
+
+- **Tortoise Shell** (Shield Wall, rare, 145s): proc 25%/50% → **15%/25%**. Expected heal per hit drops from ~12.5% damage to **3.75%**. Defensive utility intact, no longer trivializing damage.
+- **Battle Frenzy** (Berserker, rare, 140s): max 5 / +2 → **max 4 / +1**. Peak +10 → **peak +4** damage on full streak. Adjusted from user's spec of max 3 / +1 to preserve rare-item identity vs. nerfed Whetstone (would have been +1 ceiling over a common at 2× the cost — trap territory). Decay 4s unchanged.
+- **Whetstone** (baseline, common, 75s): +4 → **+2**. The always-on baseline that compounded with weapon damage; halved so it stops being the universal multiplier. Three Whetstones still stack to +6 (no DR — `archetype: null`).
+
+Description text updated on all three.
+
+HUD verified: stack display reads `stk.count` + `decayTimer / decayDuration`, no `stk.max` dependency. Battle Frenzy at max=4 renders correctly with shorter peak count.
+
+Index: `[item-balance]`.
+
+---
+
 ## 2026-05-11 — `[scheduled-elites]` + `[archetype-dr]`
 
 Continuous tier curve alone wasn't breaking wave-3 autopilot. Shipping the two scheduled-event additions from the original plan: mid-wave elite encounters on non-boss waves, and diminishing returns on same-archetype item stacking. Both isolate single design levers for clean follow-up tuning.

@@ -172,9 +172,9 @@ export const SHOP_ITEMS = [
     cost: 75,
     rarity: 'common',
     archetype: null,
-    description: '+4 weapon damage',
+    description: '+2 weapon damage',
     effects: [
-      { type: 'stat_boost', stat: 'damageBonus', amount: 4, mode: 'add' }
+      { type: 'stat_boost', stat: 'damageBonus', amount: 2, mode: 'add' }
     ]
   },
   {
@@ -235,13 +235,13 @@ export const SHOP_ITEMS = [
     cost: 140,
     rarity: 'rare',
     archetype: 'berserker',
-    description: '+2 dmg per Berserker stack on kill (max 5, 4s decay)',
+    description: '+1 dmg per Berserker stack on kill (max 4, 4s decay)',
     effects: [
-      { type: 'gain_stack', stackName: 'berserker', max: 5,
+      { type: 'gain_stack', stackName: 'berserker', max: 4,
         decayMode: 'timer', decayDuration: 4.0,
         trigger: 'onKill', amount: 1 },
       { type: 'per_stack_modifier', stackName: 'berserker',
-        stat: 'damageBonus', perStackAmount: 2 }
+        stat: 'damageBonus', perStackAmount: 1 }
     ]
   },
   {
@@ -333,13 +333,13 @@ export const SHOP_ITEMS = [
     cost: 145,
     rarity: 'rare',
     archetype: 'shield_wall',
-    description: 'On hit: 25% chance to heal for half damage taken',
+    description: 'On hit: 15% chance to heal for 25% damage taken',
     effects: [
       {
         type: 'on_take_damage',
         handler: (game, data) => {
-          if (Math.random() < 0.25) {
-            const heal = Math.ceil((data.damage ?? 0) * 0.5);
+          if (Math.random() < 0.15) {
+            const heal = Math.ceil((data.damage ?? 0) * 0.25);
             game.player.hp = Math.min(game.player.maxHp, game.player.hp + heal);
             flashScreen('green', 0.08);
           }
