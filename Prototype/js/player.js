@@ -76,7 +76,8 @@ export function createPlayer(W, H) {
     frostStrengthBonus: 0,     // additive slow strength (capped at 0.95 total)
     weaponTagBoosts: {},       // <tag>: { damageBonus, fireRateMult } scope overlays
     upgrades: { hp: 0, dmg: 0, spd: 0, rate: 0 },
-    itemsPurchased: 0          // proxy for "level" — feeds boss HP scaling
+    itemsPurchased: 0,         // proxy for "level" — feeds boss HP scaling
+    archetypeOwned: {}         // <archetype>: count — feeds 0.7^N diminishing returns
   };
 }
 

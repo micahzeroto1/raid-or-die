@@ -1,12 +1,13 @@
 import { WAVES, tierSpawnIntervalMult } from './config.js';
 import { choice } from './utils.js';
-import { spawnEnemy, spawnBoss } from './enemies.js';
+import { spawnEnemy, spawnBoss, spawnElite } from './enemies.js';
 import { showShop, showVictory } from './ui.js';
 
 export function startWave(game) {
   game.waveTimer = WAVES[game.wave].duration;
   game.spawnTimer = 0.5;
   game.bossSpawned = false;
+  game.eliteSpawned = false;
 }
 
 export function updateSpawning(game, dt) {
@@ -32,10 +33,17 @@ export function updateSpawning(game, dt) {
 }
 
 export function updateWaveTimer(game, dt) {
+  const def = WAVES[game.wave];
   // Boss spawn at 8s remaining for boss waves (only once per wave)
-  if (WAVES[game.wave].boss && game.waveTimer < 8 && !game.bossSpawned) {
-    spawnBoss(game, WAVES[game.wave].boss);
+  if (def.boss && game.waveTimer < 8 && !game.bossSpawned) {
+    spawnBoss(game, def.boss);
     game.bossSpawned = true;
+  }
+  // Scheduled elite spawn at 55% of wave duration on non-boss waves.
+  // Mirrors the boss-spawn pattern: one-shot trigger via eliteSpawned flag.
+  if (def.scheduledElite && game.waveTimer < def.duration * 0.45 && !game.eliteSpawned) {
+    spawnElite(game, def.scheduledElite);
+    game.eliteSpawned = true;
   }
 
   // --- Wave timer ---

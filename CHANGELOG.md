@@ -23,6 +23,33 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[scheduled-elites]` + `[archetype-dr]`
+
+Continuous tier curve alone wasn't breaking wave-3 autopilot. Shipping the two scheduled-event additions from the original plan: mid-wave elite encounters on non-boss waves, and diminishing returns on same-archetype item stacking. Both isolate single design levers for clean follow-up tuning.
+
+**`[scheduled-elites]`** — wave 2 now spawns one elite at the 55% mark (timer-based trigger, mirrors boss-spawn pattern at [waves.js:32](Prototype/js/waves.js:32)). User-confirmed: no HP discount (full 3× = real threat), damage ×1.25 (stings without one-shotting after one shop).
+
+- Wave 2 elite militia: 75 × tier mult × 3 = ~304 HP (wave 2), damage 15, silver 5×, radius 1.4×, speed 0.9×, orange `#ff8c2a` accent. Screen-shake + orange particle burst telegraph on spawn.
+- Wave 1 stays tutorial-clean. Wave 3 stays Abbot-only (boss is the spike).
+- New `spawnElite(game, spec)` in [enemies.js](Prototype/js/enemies.js) — reuses spawnBoss fixed-stat pattern (no variance, no lateral offset, no variants). `e.elite = true` flag.
+- `eliteSpawned` flag mirrors `bossSpawned`. Reset in `startWave`.
+- Elite drops silver normally on kill and can still roll mead (it's not a boss).
+
+**`[archetype-dr]`** — second copy of a same-archetype item now applies at 0.7× effect; third at 0.49×; fourth at 0.34×. Stacking 4 same-archetype ≈ 2.54× of one. Baseline items (`archetype: null` — Boar Heart, Whetstone, Wolf Sinew, Swift Boots, Mead of Mimir, Raven Charm) **untouched** — they remain the safe progression path that stacks at full value.
+
+- `applyItemEffects` computes `drMult = 0.7^archetypeOwned[arch]` and passes to handlers as 3rd arg.
+- Numeric handlers consume it: `handler_statBoost` (additive scales linearly; multiply scales the deviation from 1.0 so a 20% boost at DR=0.7 becomes 14%), `handler_gainStack` (per-trigger stack amount scales), `handler_perStackModifier` (per-stack bonus scales).
+- Event-driven effects (`on_kill`, `on_hit`, `apply_status`, etc.) fire at full strength regardless — they don't have a scalar to scale. Known limitation: two "heal 1 HP on kill" Berserker items = 2 HP per kill, not 1.7. Acceptable for first ship.
+- New `player.archetypeOwned: {}` counter in createPlayer.
+
+**Files:** [config.js](Prototype/js/config.js) (wave 2 `scheduledElite`), [waves.js](Prototype/js/waves.js) (schedule check + flag reset + spawnElite import), [enemies.js](Prototype/js/enemies.js) (new `spawnElite`), [items.js](Prototype/js/items.js) (DR plumbing through `applyItemEffects` + 3 handlers), [player.js](Prototype/js/player.js) (archetypeOwned field).
+
+If wave 2 with elite still feels too easy, next dial is: bump elite to ×3.5 HP mult, or steeper tier HP slope. If wave 3 still walks, next dial is: bump tier HP slope from 0.35 to 0.45 (whole curve adjusts via one number). One variable at a time.
+
+Index: `[scheduled-elites]`, `[archetype-dr]`.
+
+---
+
 ## 2026-05-11 — `[tier-spine]` + `[gear-unlock]`
 
 Architectural scaling system. Wave 3 stomp problem traced to: player power compounds (items + weapon upgrades) but enemy stats are flat per-enemy. New: one `tier` integer per wave drives 4 derived multipliers, plus a separate boss player-level multiplier. Adding wave 4+ is now `{ tier: N, types, label }` — system handles the rest.

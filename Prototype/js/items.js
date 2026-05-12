@@ -9,8 +9,12 @@ import { flashScreen } from './ui.js';
 // Each handler runs at item-purchase time. Stat-modifying handlers mutate the
 // player directly; event-driven handlers register listeners with the event hub.
 
-function handler_statBoost(game, ef) {
+function handler_statBoost(game, ef, drMult = 1) {
   const player = game.player;
+  // Diminishing returns: additive gets scaled directly; multiply gets its
+  // "deviation from 1.0" scaled so a 20% boost at DR=0.7 becomes 14%.
+  const addAmount = ef.amount * drMult;
+  const mulAmount = 1 + (ef.amount - 1) * drMult;
   // Scoped boost: writes into player.weaponTagBoosts[tag][stat] so the
   // weapons module can merge it in at fire time only for matching weapons.
   if (ef.scope?.weaponTag) {
@@ -19,17 +23,17 @@ function handler_statBoost(game, ef) {
     if (!player.weaponTagBoosts[tag]) player.weaponTagBoosts[tag] = {};
     const overlay = player.weaponTagBoosts[tag];
     if (ef.mode === 'multiply') {
-      overlay[ef.stat] = (overlay[ef.stat] ?? 1) * ef.amount;
+      overlay[ef.stat] = (overlay[ef.stat] ?? 1) * mulAmount;
     } else {
-      overlay[ef.stat] = (overlay[ef.stat] ?? 0) + ef.amount;
+      overlay[ef.stat] = (overlay[ef.stat] ?? 0) + addAmount;
     }
     return;
   }
   // Unscoped: existing behavior — direct mutation on the player.
   if (ef.mode === 'multiply') {
-    player[ef.stat] *= ef.amount;
+    player[ef.stat] *= mulAmount;
   } else {
-    player[ef.stat] = (player[ef.stat] ?? 0) + ef.amount;
+    player[ef.stat] = (player[ef.stat] ?? 0) + addAmount;
   }
 }
 
@@ -70,15 +74,18 @@ function handler_onTick(game, ef) {
   });
 }
 
-function handler_gainStack(game, ef) {
+function handler_gainStack(game, ef, drMult = 1) {
   registerStack(game.player, ef.stackName, {
     max: ef.max ?? Infinity,
     decayMode: ef.decayMode ?? 'permanent',
     decayDuration: ef.decayDuration ?? 0,
     resetOn: ef.resetOn ?? null
   });
-  // Hook the trigger event so kills (or whatever) feed the stack
-  on(game, ef.trigger, () => gainStack(game, ef.stackName, ef.amount ?? 1));
+  // Hook the trigger event so kills (or whatever) feed the stack.
+  // DR scales the per-trigger amount — second same-archetype stacker
+  // gains 0.7× per kill, slowing the ramp toward max.
+  const stackAmount = (ef.amount ?? 1) * drMult;
+  on(game, ef.trigger, () => gainStack(game, ef.stackName, stackAmount));
   // Reset-on event subscription
   if (ef.decayMode === 'reset_on' && ef.resetOn) {
     on(game, ef.resetOn, () => {
@@ -90,11 +97,11 @@ function handler_gainStack(game, ef) {
   }
 }
 
-function handler_perStackModifier(game, ef) {
+function handler_perStackModifier(game, ef, drMult = 1) {
   game.perStackHandlers.push({
     stackName: ef.stackName,
     stat: ef.stat,
-    perStackAmount: ef.perStackAmount,
+    perStackAmount: ef.perStackAmount * drMult,
     lastCount: 0
   });
 }
@@ -122,9 +129,23 @@ const EFFECT_HANDLERS = {
 };
 
 export function applyItemEffects(game, item) {
+  const player = game.player;
+  if (!player.archetypeOwned) player.archetypeOwned = {};
+  // Diminishing returns on stacking same archetype: 0.7^N where N is
+  // the count of previously-purchased same-archetype items. First buy
+  // of a given archetype = 0.7^0 = 1.0 (full effect). Baseline items
+  // (archetype: null) pass through at full value — they're the safe
+  // progression path. Only scales numeric scalars in stat/stack
+  // handlers; event-driven effects (on_kill, apply_status, etc.) fire
+  // at full strength regardless.
+  const arch = item.archetype;
+  const drMult = arch ? Math.pow(0.7, player.archetypeOwned[arch] ?? 0) : 1;
   for (const ef of item.effects) {
     const fn = EFFECT_HANDLERS[ef.type];
-    if (fn) fn(game, ef);
+    if (fn) fn(game, ef, drMult);
+  }
+  if (arch) {
+    player.archetypeOwned[arch] = (player.archetypeOwned[arch] ?? 0) + 1;
   }
 }
 

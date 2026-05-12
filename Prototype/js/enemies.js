@@ -112,6 +112,40 @@ export function spawnBoss(game, type) {
   }
 }
 
+// Scheduled mid-wave threat spike. Reuses spawnBoss's fixed-stat pattern
+// (no variance / variants / lateral offset). HP × 3 × tierHpMult so the
+// elite reads as a real wall, not a slow regular. Damage × 1.25 stings
+// without one-shotting after one shop. Orange accent + screen-shake
+// telegraph make it visually distinct.
+export function spawnElite(game, spec) {
+  const def = ENEMY_DEFS[spec.type];
+  const wave = WAVES[game.wave];
+  const hpMult = tierHpMult(wave.tier) * 3;
+  const eliteHp = def.hp * hpMult;
+  game.enemies.push({
+    type: spec.type, x: GATE_X, y: GATE_Y - 20, r: def.r * 1.4,
+    hp: eliteHp, maxHp: eliteHp,
+    speed: def.speed * 0.9,
+    damage: def.damage * 1.25,
+    silver: Math.round(def.silver * 5),
+    color: def.color, accent: '#ff8c2a',
+    hitFlash: 0,
+    fireCooldown: rand(2, 4),
+    bob: rand(0, 6.28),
+    behavior: def.behavior,
+    elite: true
+  });
+  game.shake = 15;
+  for (let i = 0; i < 30; i++) {
+    game.particles.push({
+      x: GATE_X + rand(-30, 30), y: GATE_Y,
+      vx: rand(-150, 150), vy: rand(-50, 150),
+      life: rand(0.5, 1.0), maxLife: 1.0,
+      color: i % 2 === 0 ? '#ff8c2a' : '#c8612a', r: rand(2, 4)
+    });
+  }
+}
+
 // --- Behavior dispatch (non-boss enemies) -----------------------------------
 
 // Boids-style separation: accumulate a repulsion vector from neighbors
