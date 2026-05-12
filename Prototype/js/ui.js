@@ -1,8 +1,14 @@
 import { SHOP_ITEMS, applyItemEffects } from './items.js';
 import { WEAPONS } from './weapons.js';
+import { WAVES } from './config.js';
 import { choice } from './utils.js';
 
 const RARITY_WEIGHTS = { common: 50, uncommon: 30, rare: 15, legendary: 5 };
+
+// Gear unlock: items only appear in the shop once the wave tier reaches
+// their rarity threshold. Drives the "I'm getting somewhere" reward feel —
+// uncommons surface at wave 2, rares at wave 3, etc. Common = always.
+const RARITY_UNLOCK_TIER = { common: 1, uncommon: 2, rare: 3, legendary: 4 };
 
 // Lookup map for HUD stack rendering. Add one entry per new stack type;
 // no other code changes needed. CSS picks up the color via --stack-color.
@@ -132,7 +138,10 @@ function renderShopOffers(game) {
   const itemCount = 4 - weaponCount;
 
   const weaponPicks = [...availableWeapons].sort(() => Math.random() - 0.5).slice(0, weaponCount);
-  const itemPicks = weightedItemPicks(SHOP_ITEMS, itemCount);
+  // Filter SHOP_ITEMS by tier-gated rarity before weighted pick.
+  const currentTier = WAVES[game.wave].tier;
+  const eligibleItems = SHOP_ITEMS.filter(it => (RARITY_UNLOCK_TIER[it.rarity] ?? 1) <= currentTier);
+  const itemPicks = weightedItemPicks(eligibleItems, itemCount);
 
   weaponPicks.forEach(w => addWeaponCard(grid, game, w));
   itemPicks.forEach(u => addItemCard(grid, game, u));
@@ -190,6 +199,7 @@ function addItemCard(grid, game, u) {
   card.onclick = () => {
     if (game.totalSilver < u.cost) return;
     game.totalSilver -= u.cost;
+    game.player.itemsPurchased = (game.player.itemsPurchased ?? 0) + 1;
     applyItemEffects(game, u);
     card.style.opacity = '0.4';
     card.style.pointerEvents = 'none';

@@ -1,4 +1,4 @@
-import { WAVES } from './config.js';
+import { WAVES, tierSpawnIntervalMult } from './config.js';
 import { choice } from './utils.js';
 import { spawnEnemy, spawnBoss } from './enemies.js';
 import { showShop, showVictory } from './ui.js';
@@ -18,11 +18,15 @@ export function updateSpawning(game, dt) {
     }
     // Linear interp from spawnInterval -> spawnIntervalEnd over wave duration.
     // Wave 1 omits spawnIntervalEnd → falls back to constant spawnInterval.
+    // Tier density mult collapses the interval at higher tiers (the screen
+    // fills faster; survivor-like ramp).
+    const intervalMult = tierSpawnIntervalMult(def.tier);
     if (def.spawnIntervalEnd != null) {
       const progress = 1 - (game.waveTimer / def.duration);  // 0 -> 1
-      game.spawnTimer = def.spawnInterval + (def.spawnIntervalEnd - def.spawnInterval) * progress;
+      const base = def.spawnInterval + (def.spawnIntervalEnd - def.spawnInterval) * progress;
+      game.spawnTimer = base * intervalMult;
     } else {
-      game.spawnTimer = def.spawnInterval;
+      game.spawnTimer = def.spawnInterval * intervalMult;
     }
   }
 }

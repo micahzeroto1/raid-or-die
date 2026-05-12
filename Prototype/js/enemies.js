@@ -1,5 +1,5 @@
 import { rand, randInt, dist, clamp } from './utils.js';
-import { ENEMY_DEFS, GATE_X, GATE_Y, MONASTERY_HEIGHT } from './config.js';
+import { ENEMY_DEFS, GATE_X, GATE_Y, MONASTERY_HEIGHT, WAVES, tierHpMult, tierSilverMult, tierPhase2Threshold } from './config.js';
 import { flashScreen, showGameOver } from './ui.js';
 import { emit } from './events.js';
 import { playSound } from './sounds.js';
@@ -49,12 +49,18 @@ export function spawnEnemy(game, type) {
     lateralOffset = rand(-50, 50);
   }
 
+  // Tier scaling: HP scales linearly with wave tier; silver yield scales
+  // sub-linearly so wallet plateaus (player can't snowball richer per kill).
+  const wave = WAVES[game.wave];
+  const hpMult = tierHpMult(wave.tier) * eliteHpMult;
+  const silverYield = Math.max(1, Math.round(def.silver * tierSilverMult(wave.tier)));
+
   game.enemies.push({
     type, x, y, r: def.r,
-    hp: def.hp * eliteHpMult, maxHp: def.hp * eliteHpMult,
+    hp: def.hp * hpMult, maxHp: def.hp * hpMult,
     speed: def.speed * speedMult,
     damage: def.damage,
-    silver: def.silver,
+    silver: silverYield,
     color: def.color, accent: def.accent,
     hitFlash: 0,
     fireCooldown: rand(2, 4),
@@ -75,9 +81,17 @@ export function spawnEnemy(game, type) {
 
 export function spawnBoss(game, type) {
   const def = ENEMY_DEFS[type];
+  // Boss HP scales with wave tier AND player "level" (filled weapon slots
+  // + items purchased so far). The player-level mult is the belt-and-
+  // suspenders fix against a stomp build trivializing the climax.
+  const wave = WAVES[game.wave];
+  const filledSlots = game.player.weapons.filter(s => s !== null).length;
+  const playerLevel = (game.player.itemsPurchased ?? 0) + filledSlots;
+  const hpMult = tierHpMult(wave.tier) * (1 + playerLevel * 0.04);
+  const bossHp = def.hp * hpMult;
   game.enemies.push({
     type, x: GATE_X, y: GATE_Y - 20, r: def.r,
-    hp: def.hp, maxHp: def.hp,
+    hp: bossHp, maxHp: bossHp,
     speed: def.speed,
     damage: def.damage,
     silver: def.silver,
@@ -213,10 +227,12 @@ function updateBoss(game, e, dt) {
     e.x += (dx / d) * e.speed * slowMult * dt;
     e.y += (dy / d) * e.speed * slowMult * dt;
   }
-  // Phase 2 trigger: <50% HP. Faster + tighter bead barrage so scaled
-  // player damage doesn't trivialize the second half of the fight.
-  // One-shot telegraph (shake + dark-purple particles) sells the shift.
-  if (!e.phase2 && e.hp < e.maxHp * 0.5) {
+  // Phase 2 trigger: HP threshold scales with wave tier so higher-tier
+  // bosses keep tension longer (tier 3 = 0.41, tier 5 = 0.35). Faster +
+  // tighter bead barrage so scaled player damage doesn't trivialize the
+  // second half. One-shot telegraph (shake + dark-purple particles).
+  const phase2Threshold = tierPhase2Threshold(WAVES[game.wave].tier);
+  if (!e.phase2 && e.hp < e.maxHp * phase2Threshold) {
     e.phase2 = true;
     game.shake = 20;
     for (let i = 0; i < 20; i++) {

@@ -23,6 +23,40 @@ Tag conventions:
 
 ---
 
+## 2026-05-11 — `[tier-spine]` + `[gear-unlock]`
+
+Architectural scaling system. Wave 3 stomp problem traced to: player power compounds (items + weapon upgrades) but enemy stats are flat per-enemy. New: one `tier` integer per wave drives 4 derived multipliers, plus a separate boss player-level multiplier. Adding wave 4+ is now `{ tier: N, types, label }` — system handles the rest.
+
+**Tier multipliers (all in [Prototype/js/config.js](Prototype/js/config.js)):**
+
+| Lever | Formula | Tier 1 | Tier 3 | Tier 5 |
+|---|---|---|---|---|
+| Enemy HP | `1 + (tier-1) × 0.35` | 1.00× | 1.70× | 2.40× |
+| Silver yield | `1 / (1 + (tier-1) × 0.15)` | 1.00× | 0.77× | 0.63× |
+| Spawn interval | `1 / (1 + (tier-1) × 0.20)` | 1.00× | 0.71× | 0.56× |
+| Boss phase-2 threshold | `max(0.30, 0.50 - tier × 0.03)` | 0.47 | 0.41 | 0.35 |
+
+Plus, separate from tier: **boss HP × (1 + playerLevel × 0.04)** where `playerLevel = itemsPurchased + filledWeaponSlots`. Belt-and-suspenders against shop stomp. A 7-item / 2-weapon wave 3 build sees Abbot at ~1.4× HP scaling (tier mult) × ~1.36 (level mult) ≈ ~92% beefier than baseline.
+
+**Files touched:**
+- [config.js](Prototype/js/config.js) — `tier` field on each wave, tier-mult helpers exported.
+- [enemies.js](Prototype/js/enemies.js) — `spawnEnemy` applies HP+silver mults; `spawnBoss` applies HP×level mult; `updateBoss` uses tier-derived phase-2 threshold.
+- [waves.js](Prototype/js/waves.js) — `updateSpawning` applies density mult.
+- [player.js](Prototype/js/player.js) — `itemsPurchased` counter added to createPlayer.
+
+**`[gear-unlock]` — tier-gated shop pool:** uncommon items unlock at tier 2, rare at tier 3, legendary at tier 4. Items get filtered out of the pool below their tier. Direct progression-reward feel: wave 2 shop visibly has new options that didn't exist on wave 1.
+
+- [ui.js](Prototype/js/ui.js) — `RARITY_UNLOCK_TIER` map + filter pass before `weightedItemPicks`. Increment `player.itemsPurchased` on item buy.
+
+**Behavior at current 3 waves:**
+- Wave 1: identical to before (tier 1 = all mults 1.0). Common items only.
+- Wave 2: enemies +35% HP, +17% density, silver yield ×0.87. Shop adds uncommons.
+- Wave 3 (now 40s, was 45s): enemies +70% HP, +43% density, silver ×0.77. Shop adds rares. Abbot phase 2 at 41% HP, scaled by player level.
+
+Index: `[tier-spine]`, `[gear-unlock]`.
+
+---
+
 ## 2026-05-11 — `[peasant-rabble]`
 
 Wave 1 follow-up: peasants were reading as one synchronized clump. Two tweaks make them feel like untrained rabble instead of a drilled unit.
